@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+  <link rel="stylesheet" href="index.css">
+  <script src="https://unpkg.com/vue@3.2.12/dist/vue.global.js"></script>
+  <script src="./utils/audio.js"></script>
+  <title></title>
+</head>
+<body>
+  <div id="app">
+    <h1>第 {{ level }} 关</h1>
+    <header>
+      <span class="btn" @click="handleStart">开始游戏</span>
+      <span class="btn" @click="handleReset">重置</span>
+      <span class="btn" @click="handleSwitch('prev')">上一关</span>
+      <span class="btn" @click="handleSwitch('next')">下一关</span>
+      <p class="center">
+        行: 
+        <select v-model="config.row">
+          <option :value ="item" v-for="item in [3,4,5,6,7,8]">{{ item }}</option>
+        </select>
+        列: 
+        <select v-model="config.col">
+          <option :value ="item" v-for="item in [3,4,5,6,7,8]">{{ item }}</option>
+        </select>
+       
+      </p>
+      <span class="btn" @click="toggleSound">
+        {{ soundEnabled ? '🔊' : '🔇' }} 音效
+      </span>
+      <span class="btn" @click="toggleBGM">
+        {{ bgmEnabled ? '♫' : '♪' }} 背景音乐
+      </span>
+    </header>
+    <div class="wrap">
+      <div class="container" :style="setContainerStyle()">
+        <div class="card-wrap"
+          v-for="(item, index) in cards" 
+          :key="index"  
+          :style="setCardStyle(item)">
+          <div class="card" 
+            :class="[item.not && 'is-allow', item.id]"
+            :style="setAnimation(item)"
+            @click="clickCard(item, index)"
+          >
+            <span>{{ item.icon }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-slot-container">
+      <div class="card-slot">
+        <svg class="slot-separators" v-html="slotSeparators"></svg>
+      </div>
+    </div>
+    
+    <!-- 自定义弹窗 -->
+    <div v-if="showDialog" class="dialog-overlay" @click="closeDialog">
+      <div class="dialog-content" @click.stop>
+        <div class="dialog-header">
+          <h3>{{ dialogTitle }}</h3>
+        </div>
+        <div class="dialog-body">
+          <p>{{ dialogMessage }}</p>
+        </div>
+        <div class="dialog-footer">
+          <button class="dialog-btn dialog-btn-primary" @click="handleConfirm">{{ confirmText }}</button>
+          <button class="dialog-btn dialog-btn-secondary" @click="handleCancel">{{ cancelText }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const { reactive, ref, toRefs, setup, computed, onMounted, watch } = Vue;
+    const App = {
+      setup() {
+        const audio = new CustomAudio({
+          template: '#app',
+          bgmSrc: './static/bgm.mp3',
+          clickBgm: './static/clickBgm.mp3'
+        });
+        window.customAudio = audio;
+
+        const DEFAULT_ICONS = ['🐑', '🌹', '🐖', '🍚', '👓', '🐭', '😘', '🍑', '⭐', '💩', '💊', '🎈'];
+        const OFFSET_VALUES = [7, -7, 20, -20, 25, -25, 33, -33, 40, -40];
+        const ROUNDS_OPTIONS = [3, 6, 9];
+        const GAME_CONFIG = {
+          BASE_SIZE: 40,
+          CARD_SLOT_MAX: 7,
+          CLEAR_COUNT: 3,
+          ANIMATION_DURATION: 400,
+          MAX_LEVEL: 10,
+          DEFAULT_ROWS: 8,
+          DEFAULT_COLS: 8
+        };
+
+        const config = reactive({
+          base: GAME_CONFIG.BASE_SIZE,
+          selectMaxLength: GAME_CONFIG.CARD_SLOT_MAX,
+          maxCount: GAME_CONFIG.CLEAR_COUNT,
+          animationTime: GAME_CONFIG.ANIMATION_DURATION,
+          maxLevel: GAME_CONFIG.MAX_LEVEL,
+          row: GAME_CONFIG.DEFAULT_ROWS,
+          col: GAME_CONFIG.DEFAULT_COLS
+        });
+
+        const data = reactive({
+          level: 1,
+          cards: [],
+          select: new Map(),
+          containerInfo: null,
+          cardSlotInfo: null,
+          soundEnabled: false,  // 音效开关
+          bgmEnabled: false,  // BGM开关
+          showDialog: false,  // 弹窗显示状态
+          dialogTitle: '',
+          dialogMessage: '',
+          dialogType: '',  // 弹窗类型
+          dialogCallback: null  // 确认回调
+        });
+
+        const debounce = (func, wait) => {
+          let timeout;
+          return function executedFunction(...args) {
+            const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+          };
+        };
+
+        const setContainerStyle = () => {
+          const { base, row, col } = config;
+          return `height: ${base * row}px; width: ${base * col}px`;
+        }
+        
+        const setCardStyle = ({ x, y }) => {
+          return `transform: translateX(${x}px) translateY(${y}px);`;
+        }
+        
+        const setAnimation = ({ id, clear, display }) => {
+          let styles = '';
+          if(clear) {
+            styles = `animation: scaleDraw ${config.animationTime}ms;`
+          }
+          if(display) {
+            styles += 'display: none;';
+          }
+          return styles;
+        }
+        
+        const randomCreateId = (length) => {
+          return (Math.random() + Date.now()).toString(32).slice(0, length);
+        }
+
+        const getDoMInfo = () => {
+          try {
+          const containerDom = document.querySelector('.container');
+            const cardSlotDom = document.querySelector('.card-slot');
+            
+            if (!containerDom || !cardSlotDom) {
+              console.warn('DOM元素未找到');
+              return;
+            }
+            
+          data.containerInfo = containerDom.getBoundingClientRect();
+          data.cardSlotInfo = cardSlotDom.getBoundingClientRect();
+          } catch (error) {
+            console.error('获取DOM信息失败:', error);
+          }
+        }
+
+        const icons = computed(() => {
+          return DEFAULT_ICONS.slice(0, 2 * data.level);
+        });
+
+        const selectLength = computed(() => {
+          let length = 0;
+          data.select.forEach((item) => {
+            length += item.length;
+          });
+          return length;
+        });
+
+        const slotSeparators = computed(() => {
+          return '';  // 不再绘制分割线
+        });
+
+        const calculateRounds = (level) => {
+          if (level <= 3) {
+            return [3];
+          }
+          else if (level <= 6) {
+            return [3, 6];
+          }
+          else {
+            return [3, 6, 9];
+          }
+        };
+
+        const createCardInfo = (icon) => {
+          const offset = OFFSET_VALUES[Math.floor(Math.random() * OFFSET_VALUES.length)];
+          const row = Math.floor(Math.random() * config.row);
+          const col = Math.floor(Math.random() * config.col);
+
+          const maxOffset = GAME_CONFIG.BASE_SIZE / 2;
+          const boundedOffset = Math.max(-maxOffset, Math.min(maxOffset, offset));
+
+          const x = col * config.base + boundedOffset;
+          const y = row * config.base + boundedOffset;
+          
+          data.cards.push({
+            id: randomCreateId(6),
+            icon,
+            x,
+            y,
+            not: true,
+            status: 0,
+            clear: false,
+            display: false
+          });
+        }
+
+        const checkShading = debounce(() => {
+          const cards = data.cards;
+          
+          for (let i = 0; i < cards.length; i++) {
+            cards[i].not = true;
+          }
+
+          for (let i = 0; i < cards.length; i++) {
+            const cur = cards[i];
+            if (cur.status !== 0 || cur.display) continue;
+            
+            const { x: x1, y: y1 } = cur;
+            const x2 = x1 + config.base;
+            const y2 = y1 + config.base;
+
+            for (let j = i + 1; j < cards.length; j++) {
+              const compare = cards[j];
+              if (compare.status !== 0 || compare.display) continue;
+              
+              const { x, y } = compare;
+              if (!(y + config.base <= y1 || y >= y2 || x + config.base <= x1 || x >= x2)) {
+                  cur.not = false;
+                  break;
+              }
+            }
+          }
+        }, 50);
+
+        const init = () => {
+          console.log('初始化游戏 - 关卡:', data.level, '图标:', icons.value);
+          data.select.clear();
+          data.cards = [];
+          
+          const roundsOptions = calculateRounds(data.level);
+          
+          for(const icon of icons.value) {
+            const rounds = roundsOptions[Math.floor(Math.random() * roundsOptions.length)];
+            
+            for(let k = 0; k < rounds; k++) {
+              createCardInfo(icon);
+            }
+          }
+          
+          setTimeout(() => {
+            checkShading();
+          }, 0);
+        }
+
+        watch(() => data.level, () => {
+          handleReset();
+        });
+        
+        watch(() => config.row, () => {
+          getDoMInfo();
+          data.select.clear();
+          data.cards = [];
+        });
+        
+        watch(() => config.col, () => {
+          getDoMInfo();
+          data.select.clear();
+          data.cards = [];
+        });
+
+        const handleStart = () => {
+          if(data.cards.length) {
+            showCustomDialog('提示', '游戏正在进行中，是否重新开始？', 'restart', (confirmed) => {
+              if (confirmed) {
+                handleReset();
+              }
+            });
+            return;
+          }
+          init();
+        }        
+        
+        const handleReset = () => {
+          data.cards = [];
+          data.select.clear();
+          init();
+        }
+
+        const handleSwitch = (type) => {
+          if(type === 'prev') {
+            if(data.level <= 1) {
+              return;
+            }
+            data.level--;
+          } else {
+            const maxLevel = Math.min(GAME_CONFIG.MAX_LEVEL, Math.ceil(DEFAULT_ICONS.length / 2));
+            if(data.level >= maxLevel) {
+              return;
+            }
+            data.level++;
+          }
+        }
+
+        const clickCard = async (item, index) => {
+          if(item.status === 1) return;
+
+          try {
+            if (data.soundEnabled) {
+          audio.rePlayClickBgm();
+            }
+          } catch (error) {
+            console.warn('音效播放失败:', error);
+          }
+
+          const length = selectLength.value;
+          const { selectMaxLength } = config;
+          
+          if(item.not && length < selectMaxLength) {
+            const currentCard = data.cards[index];
+            currentCard.status = 1;
+
+            await refreshCardPosition(currentCard);
+
+            setTimeout(() => {
+              if(selectLength.value >= config.selectMaxLength) {
+                showCustomDialog('游戏失败', '没有可以消除的组合了！是否重新开始？', 'failed', (confirmed) => {
+                  if (confirmed) {
+                    handleReset();
+                  }
+                });
+              }
+            }, config.animationTime);
+
+            checkShading();
+          }
+        }
+
+        const refreshCardPosition = (item) => {
+          if (!data.cardSlotInfo || !data.containerInfo) {
+            console.warn('卡槽信息未初始化');
+            return;
+          }
+
+          const { x: slotX, y: slotY, width, height } = data.cardSlotInfo;
+          const { x: containerX, y: containerY } = data.containerInfo;
+
+          if (item) {
+            const existingCards = data.select.get(item.icon);
+            if (existingCards) {
+              existingCards.push(item);
+              checkSelectQueue(existingCards);
+            } else {
+              data.select.set(item.icon, [item]);
+            }
+          }
+          
+          const offsetX = slotX - containerX;
+          const offsetY = slotY - containerY;
+          
+          const cardSize = config.base;
+          const cardGap = 5;  // 卡片之间的间隔
+          
+          const startX = offsetX + 20;
+          const startY = offsetY + height / 2 - cardSize / 2;
+          
+          let currentX = startX;
+          
+          data.select.forEach((cards) => {
+            // 为每个卡片计算位置
+            cards.forEach((card, cardIndex) => {
+              card.x = currentX + cardIndex * (cardSize + cardGap);
+              card.y = startY;
+            });
+            
+            // 移动到下一组的起始位置
+            currentX += cards.length * (cardSize + cardGap);
+          });
+        }
+
+        const checkSelectQueue = (cards) => {
+          if(cards.length !== config.maxCount) return;
+          
+            cards.forEach((item) => {
+              item.clear = true;
+          });
+            
+            setTimeout(() => {
+              data.select.delete(cards[0].icon);
+            
+              cards.forEach((item) => {
+                item.display = true;
+            });
+            }, config.animationTime - 100);
+
+            setTimeout(() => {
+              refreshCardPosition();
+
+            const remainingCards = data.cards.filter((item) => !item.display);
+            
+            if(remainingCards.length === 0) {
+              const nextLevel = data.level + 1;
+              
+              if(nextLevel < config.maxLevel) {
+                setTimeout(() => {
+                  showCustomDialog('恭喜通关', `恭喜通关第${data.level}关！进入第${nextLevel}关？`, 'levelUp', (confirmed) => {
+                    if (confirmed) {
+                      data.level++;
+                    }
+                  });
+                }, 500);
+              } else {
+                setTimeout(() => {
+                  showCustomDialog('🎉 恭喜', '恭喜通关全部关卡！是否返回第一关？', 'completed', (confirmed) => {
+                    if (confirmed) {
+                      data.level = 1;
+                    }
+                  });
+                }, 500);
+              }
+            }
+            }, config.animationTime + 100);
+        }
+
+        const toggleSound = () => {
+          data.soundEnabled = !data.soundEnabled;
+        }
+
+        const toggleBGM = () => {
+          data.bgmEnabled = !data.bgmEnabled;
+          if (data.bgmEnabled) {
+            audio.play();
+          } else {
+            audio.pause();
+          }
+        }
+
+        // 显示自定义弹窗
+        const showCustomDialog = (title, message, type, callback) => {
+          data.dialogTitle = title;
+          data.dialogMessage = message;
+          data.dialogType = type;
+          data.dialogCallback = callback;
+          data.showDialog = true;
+        }
+
+        // 关闭弹窗
+        const closeDialog = () => {
+          data.showDialog = false;
+          data.dialogCallback = null;
+        }
+
+        // 确认操作
+        const handleConfirm = () => {
+          if (data.dialogCallback) {
+            data.dialogCallback(true);
+          }
+          closeDialog();
+        }
+
+        // 取消操作
+        const handleCancel = () => {
+          if (data.dialogCallback) {
+            data.dialogCallback(false);
+          }
+          closeDialog();
+        }
+
+        const confirmText = computed(() => {
+          return '确定';
+        });
+
+        const cancelText = computed(() => {
+          return '取消';
+        });
+
+        // 键盘事件监听
+        const handleKeyPress = (e) => {
+          if (data.showDialog) {
+            if (e.key === 'Enter' || e.code === 'Space' || e.key === ' ') {
+              e.preventDefault();
+              handleConfirm();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              handleCancel();
+            }
+          }
+        }
+
+        onMounted(() => {
+          getDoMInfo();
+          // 根据BGM开关状态控制背景音乐播放
+          if (data.bgmEnabled) {
+            audio.play();
+          } else {
+            audio.pause();
+          }
+          // 添加键盘事件监听
+          window.addEventListener('keydown', handleKeyPress);
+        });
+
+        const dataRefs = toRefs(data);
+        return {
+          ...dataRefs,
+          config,
+          selectLength,
+          icons,
+          slotSeparators,
+          handleStart,
+          setContainerStyle,
+          setCardStyle,
+          setAnimation,
+          handleSwitch,
+          handleReset,
+          clickCard,
+          toggleSound,
+          toggleBGM,
+          showCustomDialog,
+          closeDialog,
+          handleConfirm,
+          handleCancel,
+          confirmText,
+          cancelText
+        };
+      }
+    };
+    
+    Vue.createApp(App).mount('#app');
+  </script>
+</body>
+</html>
