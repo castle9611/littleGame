@@ -4,531 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>拼图小游戏</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        html {
-            height: 100%;
-            overflow: hidden;
-        }
-        body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-        }
-        .container {
-            height: 100%;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            background-color: #edf0f5;
-            justify-content: flex-end;
-            flex-direction: column-reverse;
-            padding-top: 50px;
-            box-sizing: border-box;
-        }
-        .container .main-container {
-            margin: 12px;
-            max-width: 100%;
-            height: 580px;
-            max-height: 100%;
-            border-radius: 8px;
-            padding: 12px;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .image-container {
-            flex: 1;
-            display: grid;
-            overflow: hidden;
-        }
-        .container .main-container .image-container {
-            flex: 1;
-            min-height: 0;
-            width: 100%;
-            display: grid;
-            grid-gap: 1px;
-        }
-        /* 移动端触摸优化 */
-        .item {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: none;
-            transition: transform 0.15s ease;
-            border: 1px solid transparent;
-            box-sizing: border-box;
-        }
-        .item:active {
-            transform: scale(0.95);
-        }
-        .item.dragging {
-            opacity: 0.5;
-            transform: scale(1.05);
-            z-index: 10;
-        }
-        .item.drag-over {
-            border: 2px solid #2486FF !important;
-            box-shadow: 0 0 10px rgba(36, 134, 255, 0.5) !important;
-            transform: scale(1.02);
-        }
-        .container .main-container .setting-container {
-            height: 36px;
-            line-height: 60px;
-            width: 100%;
-            text-align: center;
-        }
-        .container .main-container .btn-container {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            right: auto;
-            padding: 10px 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transform: translateX(-50%);
-            transition: opacity .2s ease;
-            opacity: 0; /* 非悬停时隐藏 */
-        }
-        .container .main-container .btn-container:hover,
-        .container .main-container .btn-container:focus-within {
-            opacity: 1; /* 悬停或获得焦点时显示 */
-        }
-        .mask {
-            background-color: #ccc;
-            opacity: 0.7;
-            position: fixed;
-            left: 0;
-            top: 0;
-            z-index: 1000;
-            width: 100%;
-            height: 100%;
-        }
-        .tip-container {
-            position: fixed;
-            left: 0;
-            top: 0;
-            z-index: 1001;
-            width: 100%;
-            height: 100%;
-        }
-        .tip-container .tip-box {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .tip-container .tip-box .tip-background {
-            width: 340px;
-            min-height: 120px;
-            background:
-              linear-gradient(180deg, #ffffff, #fafafa);
-            border-radius: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            padding: 16px 18px;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
-            border: 1px solid #e9e9ef;
-        }
-        .tip-container .tip-box .tip-background .tip-title {
-            color: #f34545;
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: .5px;
-            margin-bottom: 6px;
-        }
-        .tip-container .tip-box .tip-background .tip-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            color: #555;
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-        .tip-container .tip-box .tip-background .btn-container {
-            padding: 12px 0 4px;
-            display: flex;
-            gap: 8px;
-        }
-        .tip-page {
-            display: none;
-        }
-        .btn {
-            height: 32px;
-            background-color: #ffffff;
-            border-radius: 6px;
-            color: #2486FF;
-            border: 1px solid #2486FF;
-        }
-        .btn:hover {
-            cursor: pointer;
-            color: #ffffff;
-            background-color: #5DA5FF;
-            border: 1px solid #5DA5FF;
-        }
-        .input-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            right: auto;
-            padding: 10px 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transform: translateX(-50%);
-            transition: opacity .2s ease;
-            opacity: 0; /* 非悬停时隐藏 */
-        }
-        .input-container:hover,
-        .input-container:focus-within {
-            opacity: 1; /* 悬停或获得焦点时显示 */
-        }
-        .input-container span {
-            font-size: 16px;
-            font-weight: 600;
-            margin-right: 10px;
-        }
-        .input-container input[type="text"] {
-            flex: 1;
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            outline: none;
-        }
-        .input-container input[type="text"]:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-        }
-        .input-container button {
-            padding: 8px 12px;
-            font-size: 16px;
-            color: #fff;
-            background-color: #007bff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .input-container button:hover {
-            background-color: #0056b3;
-        }
-        .input-container button:focus {
-            outline: none;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 50px;
-            height: 100%;
-            background-color: #333;
-            color: #fff;
-            transition: width 0.3s;
-            overflow: hidden;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .sidebar.expanded {
-            width: 200px;
-        }
-        .sidebar-content {
-            padding: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            transition: opacity 0.3s;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar.expanded .sidebar-content {
-            opacity: 1;
-        }
-        .sidebar-content {
-            opacity: 0;
-        }
-        .sidebar h4 {
-            color: #fff;
-            text-decoration: none;
-            font-size: 14px;
-            display: block;
-            padding: 10px;
-            transform-origin: left center;
-            margin-top: 20px;
-            transition: font-size 0.3s;
-            text-align: center;
-        }
-        .sidebar.expanded h4 {
-            font-size: 20px;
-        }
-        .sidebar-content p {
-            margin: 2px 0;
-        }
-        .sidebar-content a {
-            color: #fff;
-            text-decoration: none;
-            font-size: 16px;
-            display: block;
-            padding: 5px;
-            border-radius: 4px;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .sidebar-content a:hover {
-            background-color: #555;
-            color: #f0f0f0;
-        }
-        .tooltip {
-            position: absolute;
-            left: 60px;
-            top: 20px;
-            background-color: #333;
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 14px;
-            white-space: nowrap;
-            z-index: 2000;
-        }
-        .tooltip.show {
-            opacity: 1;
-        }
-        .sidebar-footer {
-            color: #fff;
-            text-align: center;
-            font-size: 12px;
-            padding: 10px;
-            border-top: 1px solid #444;
-            margin-top: auto;
-            transition: opacity 0.3s;
-        }
-        .sidebar.expanded .sidebar-footer {
-            opacity: 1;
-        }
-        .sidebar-footer {
-            opacity: 0;
-        }
-
-        /* === Sidebar 优化 === */
-        .sidebar {
-            background: rgba(30, 30, 35, 0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-right: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            transition: width .28s ease, box-shadow .28s ease, background .28s ease, opacity .2s ease;
-            opacity: 0; /* 非悬停时隐藏（保持占位以便可悬停） */
-        }
-        .sidebar:hover,
-        .sidebar:focus-within {
-            opacity: 1; /* 悬停或获得焦点时显示 */
-        }
-        .sidebar.expanded {
-            width: 240px; /* 原为 200px，展开更舒适 */
-        }
-        .sidebar h4 {
-            letter-spacing: .5px;
-        }
-        .sidebar-content a {
-            border-radius: 6px;
-        }
-        .sidebar-content a:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .tooltip {
-            background: rgba(30,30,35,0.92);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        /* === 难度下拉样式（yNumber/xNumber）=== */
-        .btn-container select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            height: 32px;
-            min-width: 64px;
-            padding: 0 34px 0 10px;
-            font-size: 14px;
-            color: #fff;
-            background:
-                linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.02)) padding-box,
-                rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 6px;
-            outline: none;
-            transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-            position: relative;
-        }
-        /* 自定义下拉箭头 */
-        .btn-container select {
-            background-image:
-              url("data:image/svg+xml;charset=UTF-8,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            background-size: 14px 14px;
-        }
-        .btn-container select:hover {
-            border-color: rgba(255,255,255,0.45);
-        }
-        .btn-container select:focus {
-            border-color: #5DA5FF;
-            box-shadow: 0 0 0 3px rgba(93,165,255,0.35);
-        }
-        .btn-container option {
-            color: #111;
-            background: #fff;
-        }
-        /* 底部设置面板优化 */
-        .container .main-container .btn-container,
-        .input-container {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border: 1px solid rgba(255,255,255,0.09);
-        }
-        /* 响应式修复：窄屏时防止中文逐字换行，保持水平布局 */
-        .container .main-container .btn-container,
-        .input-container {
-            flex-wrap: nowrap;
-            max-width: calc(100vw - 32px);
-            overflow-x: auto;
-        }
-        .container .main-container .btn-container span,
-        .container .main-container .btn-container .btn,
-        .container .main-container .btn-container select,
-        .input-container span,
-        .input-container button {
-            white-space: nowrap;
-            word-break: keep-all; /* 防止中文逐字折行 */
-        }
-        .input-container input[type="text"] {
-            min-width: 160px;
-            flex: 1 1 auto;
-        }
-        /* 窄屏优化：btn-container 在小屏保持居中与不换行，减少尺寸避免挤压 */
-        @media (max-width: 480px) {
-            .container {
-                padding-top: 10px;
-            }
-            .container .main-container {
-                height: calc(100vh - 20px);
-                max-height: calc(100vh - 20px);
-                padding: 8px;
-                margin: 10px;
-            }
-            .container .main-container .btn-container {
-                max-width: calc(100vw - 24px);
-                padding: 8px 12px;
-                transform: translateX(-50%) scale(0.6);
-                transform-origin: center bottom;
-                white-space: nowrap;
-                overflow-x: auto;
-            }
-            .container .main-container .btn-container span {
-                font-size: 12px;
-                word-break: keep-all;
-            }
-            .container .main-container .btn-container select {
-                min-width: 52px;
-                height: 28px;
-                font-size: 12px;
-                padding: 0 28px 0 8px; /* 预留右侧箭头空间 */
-            }
-            .container .main-container .btn-container .btn {
-                height: 28px;
-                font-size: 12px;
-                padding: 6px 10px;
-                white-space: nowrap;
-            }
-            .container .main-container .image-container {
-                grid-gap: 0;
-            }
-            .item canvas {
-                border: 1px solid #fff;
-            }
-        }
-        /* 防止移动端双指缩放 */
-        body {
-            touch-action: pan-y;
-        }
-        /* 移动端输入框优化 */
-        @media (max-width: 768px) {
-            .input-container {
-                opacity: 1;
-                max-width: calc(100vw - 40px);
-                padding: 12px;
-            }
-            .input-container input[type="text"] {
-                font-size: 14px;
-                padding: 6px;
-            }
-            .btn-container {
-                opacity: 1;
-                max-width: calc(100vw - 40px);
-                padding: 12px;
-            }
-            .sidebar {
-                opacity: 0;
-            }
-            /* 移动端提示框优化 */
-            .tip-container .tip-box .tip-background {
-                width: 90vw;
-                max-width: 340px;
-            }
-            .tip-container .tip-box .tip-background .tip-title {
-                font-size: 20px;
-            }
-            .tip-container .tip-box .tip-background .tip-content {
-                font-size: 14px;
-            }
-            .corner-links {
-                bottom: 10px;
-                right: 10px;
-            }
-        }
-        /* 完成提示弹出动画 */
-        @keyframes tipPopIn {
-            0% { transform: scale(0.85); opacity: 0; filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
-            60% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2)); }
-            100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18)); }
-        }
-        .tip-container .tip-background {
-            animation: tipPopIn 450ms ease-out;
-            will-change: transform, opacity, filter;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
         <div class="main-container">
             <div class="image-container" id="canvasContainer"></div>
-            <div class="btn-container">
+            <div class="btn-container" id="btnContainer">
+                <button type="button" class="toggle-controls-btn" id="toggleControlsBtn" title="折叠/展开控制面板">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
                 <span>难度选择：</span>
                 <select id="yNumber">
                     <option value="3">3</option>
@@ -543,24 +33,19 @@
                 </select>
                 <span>列</span>
                 <button type="button" class="btn" id="startBtn">重新开始</button>
-            </div>
-                <div class="input-container">
-                    <span>图片 URL：</span>
-                    <input type="text" id="imageUrl" placeholder="输入图片 URL">
-                    <button type="button" id="loadImageBtn">加载图片</button>
+                <button type="button" class="fullscreen-btn" id="fullscreenBtn" title="全屏显示">
+                    <i class="fas fa-expand"></i>
+                    <span>全屏</span>
+                </button>
                 </div>
         </div>
     </div>
     <div class="mask tip-page"></div>
     <div class="tip-container tip-page">
         <div class="tip-box">
-            <div class="tip-background">
-                <div class="tip-title">提示</div>
-                <div class="tip-content">拼图完成^_^</div>
                 <div class="btn-container">
                     <button type="button" class="btn" id="downloadImgBtn" title="下载完整原图">下载图片</button>
                     <button type="button" class="btn" id="okBtn">确定</button>
-                </div>
             </div>
         </div>
     </div>
@@ -571,9 +56,14 @@
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php">三次元</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/cos.php">COSPLAY</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?fl=dongman&gs=images">二次元</a></p>
+            <p><a href="#" target="_blank" data-url="https://imgapi.cn/bing.php?rand=true">必应随机</a></p>
             <p><a href="#" target="_blank" data-url="https://www.dmoe.cc/random.php">樱花</a></p>
             <p><a href="#" target="_blank" data-url="https://api.btstu.cn/sjbz/api.php">搏天三次元</a></p>
             <p><a href="#" target="_blank" data-url="https://api.anosu.top/img">二次元</a></p>
+            <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=meizi&gs=images">手机妹子</a></p>
+            <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=fengjing&gs=images">手机风景</a></p>
+            <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=suiji&gs=images">手机随机</a></p>
+            <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=dongman&gs=images">手机动漫</a></p>
         </div>
         <div class="sidebar-footer">
             © 2025 出自 <a href="https://github.com/IIIStudio/PuzzleGame" target="_blank" style="color: white; text-decoration: none;">puzzle-game</a>
@@ -586,8 +76,8 @@ let container = document.getElementById('canvasContainer');
 let yNumberElement = document.getElementById('yNumber');
 let xNumberElement = document.getElementById('xNumber');
 let tipPage = document.querySelectorAll('div.tip-page');
-let imageUrlInput = document.getElementById('imageUrl');
-let loadImageBtn = document.getElementById('loadImageBtn');
+let imageUrlInput = document.getElementById('imageUrl'); // 保留变量以防其他地方引用（虽然已移除输入框）
+let maskElement = document.querySelector('.mask.tip-page');
 let lastImageOriginUrl = ''; // 记录当前拼图所用的原始图片地址（不带时间戳）
 let lastImageLoadedUrl = ''; // 记录浏览器实际加载的最终图片地址（可能为跳转后的真实 URL）
 let lastImageBlobUrl = '';   // 缓存当前图片的 Blob 对象 URL，下载时优先使用
@@ -618,37 +108,329 @@ async function cacheImageBlob(url) {
     }
 }
 
-let dragElement = null;
 let finished = false;
 
 init();
 
 document.getElementById('startBtn').addEventListener('click', function () {
-    init();
+    // 重新开始时应重置为本地图片，而不是使用之前选择的 API
+    init(null); // 传入 null 确保使用默认本地图片
 });
 
-document.getElementById('okBtn').addEventListener('click', function () {
+document.getElementById('okBtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    e.preventDefault();
     hidenTip();
 });
-const downloadBtnEl = document.getElementById('downloadImgBtn');
-if (downloadBtnEl) {
-    downloadBtnEl.addEventListener('click', function () {
-        // 下载优先级：Blob 对象 URL > 实际加载的最终地址 > 原始地址
-        const urlToOpen = lastImageBlobUrl || lastImageLoadedUrl || lastImageOriginUrl;
-        if (!urlToOpen) {
-            alert('当前没有可下载的图片');
-            return;
+
+// 全屏功能
+let isFullscreen = false;
+window.isFullscreen = false; // 暴露到全局，供init函数使用
+let mainContainer = document.querySelector('.main-container');
+let fullscreenBtn = document.getElementById('fullscreenBtn');
+let fullscreenIcon = fullscreenBtn.querySelector('i');
+let fullscreenText = fullscreenBtn.querySelector('span');
+
+// 控制面板折叠状态
+let isControlsCollapsed = false;
+
+// 折叠/展开控制面板
+function toggleControls() {
+    const btnContainer = document.getElementById('btnContainer');
+    const inputContainer = document.querySelector('.input-container');
+    const toggleBtn = document.getElementById('toggleControlsBtn');
+    const toggleIcon = toggleBtn.querySelector('i');
+    
+    if (!isControlsCollapsed) {
+        // 折叠
+        btnContainer.classList.add('collapsed');
+        isControlsCollapsed = true;
+        toggleIcon.className = 'fas fa-chevron-down';
+    } else {
+        // 展开
+        btnContainer.classList.remove('collapsed');
+        isControlsCollapsed = false;
+        toggleIcon.className = 'fas fa-chevron-up';
+    }
+    
+    // 延迟调整布局，确保动画完成
+    setTimeout(() => {
+        checkAndRotate();
+        adjustLayoutForFullscreen();
+    }, 350);
+}
+
+// 调整全屏布局
+function adjustLayoutForFullscreen() {
+    if (!isFullscreen) return;
+    
+    const btnContainer = document.getElementById('btnContainer');
+    const imageContainer = document.getElementById('canvasContainer');
+    if (!imageContainer) return;
+    
+    // 根据控制面板状态调整拼图容器位置
+    const isCollapsed = btnContainer && btnContainer.classList.contains('collapsed');
+    
+    // 添加类标记，方便CSS选择（CSS会处理具体的布局）
+    if (isCollapsed) {
+        imageContainer.classList.add('collapsed-top');
+    } else {
+        imageContainer.classList.remove('collapsed-top');
+    }
+    
+    // 不再通过JS设置样式，全部由CSS控制布局和定位
+    // CSS已经通过 .main-container.fullscreen-mode .image-container 处理了
+}
+
+// 检查是否需要旋转（竖屏时旋转90度，确保完整显示）
+function checkAndRotate() {
+    if (!isFullscreen || !mainContainer) return;
+    
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const isPortrait = screenHeight > screenWidth;
+    
+    // 获取拼图的布局信息（如果已经初始化）
+    const imageContainer = document.getElementById('canvasContainer');
+    if (!imageContainer) return;
+    
+    // 获取控制面板实际高度
+    const btnContainer = document.getElementById('btnContainer');
+    const controlsHeight = btnContainer && btnContainer.classList.contains('collapsed') ? 40 : 80;
+    
+    // 可用空间（考虑控制面板高度）
+    const availableWidth = screenWidth;
+    const availableHeight = screenHeight - controlsHeight;
+    
+    // 计算横竖屏的利用率 - 选择能显示更大拼图区域的方向
+    // 利用率 = min(可用宽度/拼图宽度, 可用高度/拼图高度)
+    // 当竖屏时，如果旋转后能获得更大的显示面积，则旋转
+    const landscapeArea = availableWidth * availableHeight;
+    const portraitArea = availableHeight * availableWidth;
+    
+    // 如果竖屏且横屏方向能获得更大显示面积（通常竖屏设备旋转后能更好显示横图）
+    // 或者竖屏时，如果可用宽度/高度比 > 0.9（接近正方形），则旋转以获得更好体验
+    const aspectRatio = availableWidth / availableHeight;
+    const shouldRotate = isPortrait && (
+        aspectRatio < 0.85 || // 当竖屏比例明显小于1时
+        (aspectRatio < 0.95 && landscapeArea > portraitArea * 1.1) // 或旋转后面积明显更大
+    );
+    
+    if (shouldRotate) {
+        mainContainer.classList.add('rotated');
+    } else {
+        mainContainer.classList.remove('rotated');
+    }
+    
+    // 确保布局调整
+    adjustLayoutForFullscreen();
+}
+
+// 暴露到全局，供init函数使用
+window.checkAndRotate = checkAndRotate;
+
+// 进入全屏
+function enterFullscreen() {
+    if (!mainContainer) return;
+    
+    isFullscreen = true;
+    window.isFullscreen = true;
+    mainContainer.classList.add('fullscreen-mode', 'auto-rotate');
+    document.body.classList.add('fullscreen-active');
+    
+    // 重置控制面板状态（默认展开）
+    isControlsCollapsed = false;
+    const btnContainer = document.getElementById('btnContainer');
+    if (btnContainer) {
+        btnContainer.classList.remove('collapsed');
+        const toggleBtn = document.getElementById('toggleControlsBtn');
+        if (toggleBtn) {
+            const toggleIcon = toggleBtn.querySelector('i');
+            if (toggleIcon) toggleIcon.className = 'fas fa-chevron-up';
         }
-        window.open(urlToOpen, '_blank');
+    }
+    
+    // 更新按钮图标和文本
+    fullscreenIcon.className = 'fas fa-compress';
+    fullscreenText.textContent = '退出';
+    
+    // 检查和调整旋转（延迟以确保DOM已更新）
+    setTimeout(() => {
+        adjustLayoutForFullscreen();
+        checkAndRotate();
+        // 如果拼图已初始化，延迟重新初始化一次以适应全屏尺寸（仅一次）
+        const imageContainer = document.getElementById('canvasContainer');
+        const items = imageContainer && imageContainer.querySelectorAll('.item');
+        if (items && items.length > 0) {
+            setTimeout(() => {
+                if (typeof init === 'function') {
+                    init();
+                }
+            }, 400);
+        }
+    }, 100);
+    
+    // 监听窗口大小变化，自动调整
+    window.addEventListener('resize', handleFullscreenResize);
+    
+    // 监听屏幕方向变化
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            adjustLayoutForFullscreen();
+            checkAndRotate();
+        }, 300);
     });
 }
 
-loadImageBtn.addEventListener('click', function () {
-    init(); // 重新初始化游戏，使用新的图片 URL
+// 退出全屏
+function exitFullscreen() {
+    if (!mainContainer) return;
+    
+    isFullscreen = false;
+    window.isFullscreen = false;
+    mainContainer.classList.remove('fullscreen-mode', 'auto-rotate', 'rotated');
+    document.body.classList.remove('fullscreen-active');
+    
+    // 恢复按钮图标和文本
+    fullscreenIcon.className = 'fas fa-expand';
+    fullscreenText.textContent = '全屏';
+    
+    // 移除窗口大小监听
+    window.removeEventListener('resize', handleFullscreenResize);
+}
+
+// 处理全屏时的窗口大小变化
+function handleFullscreenResize() {
+    if (isFullscreen) {
+        // 使用防抖，避免频繁调用
+        clearTimeout(handleFullscreenResize.timeoutId);
+        handleFullscreenResize.timeoutId = setTimeout(() => {
+            adjustLayoutForFullscreen();
+            checkAndRotate();
+        }, 150);
+    }
+}
+
+// 全屏按钮点击事件
+fullscreenBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (isFullscreen) {
+        exitFullscreen();
+    } else {
+        enterFullscreen();
+    }
 });
 
+// 折叠按钮点击事件（只在全屏模式下可用）
+const toggleControlsBtn = document.getElementById('toggleControlsBtn');
+if (toggleControlsBtn) {
+    // 默认隐藏折叠按钮（非全屏模式）
+    toggleControlsBtn.style.display = 'none';
+    
+    toggleControlsBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (isFullscreen) {
+            toggleControls();
+        }
+    });
+}
 
-function init() {
+// 监听浏览器全屏API变化（如果用户用ESC退出全屏）
+document.addEventListener('fullscreenchange', function() {
+    // 如果浏览器全屏退出，但我们的全屏模式还在，则退出我们的全屏模式
+    if (!document.fullscreenElement && isFullscreen) {
+        exitFullscreen();
+    }
+});
+
+document.addEventListener('webkitfullscreenchange', function() {
+    if (!document.webkitFullscreenElement && isFullscreen) {
+        exitFullscreen();
+    }
+});
+
+document.addEventListener('mozfullscreenchange', function() {
+    if (!document.mozFullScreenElement && isFullscreen) {
+        exitFullscreen();
+    }
+});
+
+document.addEventListener('MSFullscreenChange', function() {
+    if (!document.msFullscreenElement && isFullscreen) {
+        exitFullscreen();
+    }
+});
+const downloadBtnEl = document.getElementById('downloadImgBtn');
+if (downloadBtnEl) {
+    downloadBtnEl.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        // 下载优先级：Blob 对象 URL > 实际加载的最终地址 > 原始地址
+        let urlToDownload = lastImageBlobUrl || lastImageLoadedUrl || lastImageOriginUrl;
+        if (!urlToDownload) {
+            alert('当前没有可下载的图片');
+            return;
+        }
+        
+        try {
+            // 如果使用 Blob URL，直接下载
+            if (lastImageBlobUrl) {
+                const link = document.createElement('a');
+                link.href = lastImageBlobUrl;
+                link.download = 'puzzle-image.jpg';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
+                return;
+            }
+            
+            // 否则尝试通过 fetch 获取图片（处理跨域）
+            try {
+                const response = await fetch(urlToDownload, { 
+                    mode: 'cors',
+                    redirect: 'follow'
+                });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = 'puzzle-image.jpg';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                    }, 100);
+                } else {
+                    throw new Error('Fetch failed');
+                }
+            } catch (fetchError) {
+                // 如果 fetch 失败（跨域限制），尝试直接打开链接
+                const link = document.createElement('a');
+                link.href = urlToDownload;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
+            }
+        } catch (error) {
+            console.error('下载失败:', error);
+            alert('下载失败，请尝试右键图片另存为');
+        }
+    });
+}
+
+function init(imageUrl) {
     let xNumber = xNumberElement.options[xNumberElement.selectedIndex].value; // 列数
     let yNumber = yNumberElement.options[yNumberElement.selectedIndex].value; // 行数
     let itemList = [];
@@ -658,23 +440,49 @@ function init() {
     container.innerHTML = ''; // 清空容器
     finished = false;
 
-    getRotateImage().then((image) => {
+    getRotateImage(imageUrl).then((image) => {
         img = image;
         
-        // 固定容器高度为 580px
         let fixedHeight = 580;
         let imageWidth = img.width;
         let imageHeight = img.height;
+        let scaledWidth, scale;
 
-        // 计算缩放后的宽度，根据图片的宽高比调整宽度
-        let scale = fixedHeight / imageHeight;
-        let scaledWidth = Math.floor(imageWidth * scale);
+        // 检查是否处于全屏模式
+        const isFullscreen = mainContainer.classList.contains('fullscreen-mode');
+        
+        if (isFullscreen) {
+            // 全屏模式下，根据窗口可用空间自适应计算尺寸
+            const btnContainer = document.getElementById('btnContainer');
+            const controlsHeight = btnContainer && btnContainer.classList.contains('collapsed') ? 40 : 80;
+            const isRotated = mainContainer.classList.contains('rotated');
+            
+            // 如果旋转了，宽高要互换（因为旋转后，窗口的宽变成高，高变成宽）
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const availableWidth = isRotated ? (screenHeight - controlsHeight - 40) : (screenWidth - 40);
+            const availableHeight = isRotated ? (screenWidth - 40) : (screenHeight - controlsHeight - 40);
+            
+            // 计算适合可用空间的缩放比例，保持图片宽高比
+            const scaleByWidth = availableWidth / imageWidth;
+            const scaleByHeight = availableHeight / imageHeight;
+            scale = Math.min(scaleByWidth, scaleByHeight);
+            
+            // 计算缩放后的尺寸
+            scaledWidth = Math.floor(imageWidth * scale);
+            fixedHeight = Math.floor(imageHeight * scale);
+        } else {
+            // 非全屏模式，使用固定高度
+            scale = fixedHeight / imageHeight;
+            scaledWidth = Math.floor(imageWidth * scale);
+        }
 
         // 计算每个单元格的宽高（根据缩放后的尺寸）
         cellWidth = Math.floor(scaledWidth / xNumber);
         cellHeight = Math.floor(fixedHeight / yNumber);
 
         // 更新容器的宽度和高度
+        // 无论是否全屏，都需要设置容器尺寸以便grid布局正确工作
         container.style.width = `${scaledWidth}px`;
         container.style.height = `${fixedHeight}px`;
 
@@ -700,13 +508,8 @@ function init() {
         item.className = 'item';
         item.setAttribute('data-index', order);
         item.draggable = 'true';
-        item.addEventListener('dragstart', onDragStart);
-        item.addEventListener('dragover', onDragOver);
-        item.addEventListener('drop', onDrop);
-        // 添加触摸事件支持
-        item.addEventListener('touchstart', onTouchStart);
-        item.addEventListener('touchmove', onTouchMove);
-        item.addEventListener('touchend', onTouchEnd);
+        // 使用 drag.js 中的函数添加拖动事件监听器
+        attachDragListeners(item);
         item.innerHTML = "<canvas class='' width='" + cellWidth + "' height='" + cellHeight + "'></canvas>";
         itemList[j][i] = item;
 
@@ -754,6 +557,13 @@ function init() {
         function getTargetIndex(sourceIndex, maxIndex) {
             return sourceIndex === 0 ? 1 : sourceIndex === maxIndex ? maxIndex - 1 : sourceIndex + randomChange[getRandomInt(randomChange.length)];
         }
+        
+        // 如果处于全屏模式，初始化完成后重新检查旋转
+        setTimeout(() => {
+            if (window.isFullscreen && typeof window.checkAndRotate === 'function') {
+                window.checkAndRotate();
+            }
+        }, 300);
     }
 }
 
@@ -776,11 +586,19 @@ function loadImagesFromTxt(txtUrl) {
 
 let currentImageIndex = 0;  // 用于追踪当前显示的图片索引
 
-function getRotateImage() {
-    let image = new Image();
-    let inputUrl = imageUrlInput.value.trim();
+// 辅助函数：正确添加查询参数到URL（处理已有查询参数的情况）
+function addQueryParam(url, paramName, paramValue) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}${paramName}=${paramValue}`;
+}
 
-    if (inputUrl.startsWith("txt:")) {
+function getRotateImage(imageUrl) {
+    let image = new Image();
+    // 如果提供了URL参数且不为null，则使用；否则使用默认本地图片
+    // imageUrl 为 null 或 undefined 时，使用默认本地图片
+    let inputUrl = (imageUrl !== null && imageUrl !== undefined) ? imageUrl.trim() : '';
+
+    if (inputUrl && inputUrl.startsWith("txt:")) {
         // 处理 txt 文件链接
         let txtUrl = inputUrl.replace("txt:", "");
         return loadImagesFromTxt(txtUrl).then(imageUrls => {
@@ -789,10 +607,11 @@ function getRotateImage() {
                 currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
                 let imageUrl = imageUrls[currentImageIndex];
                 
-                // 记录原始地址，并添加时间戳以防缓存
+                // 记录原始地址，并添加时间戳和随机数以防缓存
                 lastImageOriginUrl = imageUrl;
                 let timestamp = new Date().getTime();
-                let urlWithTimestamp = `${imageUrl}?timestamp=${timestamp}`;
+                let randomNum = Math.random().toString(36).substring(7);
+                let urlWithTimestamp = addQueryParam(addQueryParam(imageUrl, 'timestamp', timestamp), 'rand', randomNum);
                 // 先尝试解析最终 URL（避免再次命中随机 API）
                 resolveFinalUrl(urlWithTimestamp).then(finalUrl => {
                     image.src = finalUrl;
@@ -812,12 +631,14 @@ function getRotateImage() {
             }
         });
     } else {
-        // 如果不是 txt 文件，直接使用图片 URL
+        // 如果不是 txt 文件，直接使用图片 URL（如果没有提供或为 null/undefined，则使用默认本地图片）
         let imageUrl = inputUrl || './img/demo.jpg';
-        // 记录原始地址，并添加时间戳以防缓存
+        // 记录原始地址，并添加时间戳和随机数以防缓存（确保每次获取不同图片，特别是随机API）
         lastImageOriginUrl = imageUrl;
         let timestamp = new Date().getTime();
-        let urlWithTimestamp = `${imageUrl}?timestamp=${timestamp}`;
+        let randomNum = Math.random().toString(36).substring(7);
+        // 使用辅助函数正确添加参数（处理URL已包含查询参数的情况）
+        let urlWithTimestamp = addQueryParam(addQueryParam(imageUrl, '_t', timestamp), '_r', randomNum);
         // 先尝试解析最终 URL 并赋值，同时尝试缓存 Blob
         resolveFinalUrl(urlWithTimestamp).then(finalUrl => {
             image.src = finalUrl;
@@ -848,137 +669,7 @@ function loadImagesFromTxt(txtUrl) {
 
 
 
-function onDragStart(e) {
-    dragElement = e.currentTarget;
-}
-
-function onDragOver(e) {
-    if (!finished) {
-        e.preventDefault();
-    }
-}
-
-function onDrop(e) {
-    let dropElement = e.currentTarget;
-    if (dragElement != null && dragElement != dropElement) {
-        exchangeElement(dragElement, dropElement);
-        if (isFinish()) {
-            showTip();
-        }
-    }
-}
-
-// 触摸事件处理
-let touchStartElement = null;
-let touchMoveOffset = { x: 0, y: 0 };
-let touchStartPos = { x: 0, y: 0 };
-let touchLastTarget = null;
-
-function onTouchStart(e) {
-    if (finished) return;
-    e.preventDefault();
-    touchStartElement = e.currentTarget;
-    const touch = e.touches[0];
-    touchStartPos.x = touch.clientX;
-    touchStartPos.y = touch.clientY;
-    touchMoveOffset.x = 0;
-    touchMoveOffset.y = 0;
-    touchLastTarget = touchStartElement;
-    touchStartElement.classList.add('dragging');
-    
-    // 移动端震动反馈
-    if (navigator.vibrate) {
-        navigator.vibrate(10);
-    }
-}
-
-function onTouchMove(e) {
-    if (!touchStartElement || finished) return;
-    e.preventDefault();
-    
-    const touch = e.touches[0];
-    touchMoveOffset.x = touch.clientX - touchStartPos.x;
-    touchMoveOffset.y = touch.clientY - touchStartPos.y;
-    
-    // 获取触摸位置下的元素
-    const touchPoint = document.elementFromPoint(touch.clientX, touch.clientY);
-    let targetElement = touchPoint;
-    
-    // 找到最近的 .item 元素
-    while (targetElement && targetElement !== document.body) {
-        if (targetElement.classList.contains('item')) {
-            if (targetElement !== touchStartElement && targetElement !== touchLastTarget) {
-                // 如果目标发生变化，添加临时高亮
-                if (touchLastTarget && touchLastTarget !== touchStartElement) {
-                    touchLastTarget.classList.remove('drag-over');
-                }
-                targetElement.classList.add('drag-over');
-                touchLastTarget = targetElement;
-            }
-            break;
-        }
-        targetElement = targetElement.parentElement;
-    }
-}
-
-function onTouchEnd(e) {
-    if (!touchStartElement || finished) return;
-    e.preventDefault();
-    
-    // 清理高亮状态
-    if (touchLastTarget && touchLastTarget !== touchStartElement) {
-        touchLastTarget.classList.remove('drag-over');
-    }
-    if (touchStartElement) {
-        touchStartElement.classList.remove('dragging');
-    }
-    
-    // 获取触摸结束位置下的元素
-    const changedTouch = e.changedTouches[0];
-    const elementAtPoint = document.elementFromPoint(changedTouch.clientX, changedTouch.clientY);
-    
-    let targetElement = elementAtPoint;
-    // 找到最近的 .item 元素
-    while (targetElement && targetElement !== document.body) {
-        if (targetElement.classList.contains('item')) {
-            if (targetElement !== touchStartElement) {
-                exchangeElement(touchStartElement, targetElement);
-                if (isFinish()) {
-                    showTip();
-                } else if (navigator.vibrate) {
-                    // 移动端震动反馈（成功交换）
-                    navigator.vibrate([10, 50, 10]);
-                }
-            }
-            break;
-        }
-        targetElement = targetElement.parentElement;
-    }
-    
-    // 清理触摸状态
-    touchStartElement = null;
-    touchLastTarget = null;
-    touchMoveOffset.x = 0;
-    touchMoveOffset.y = 0;
-}
-
-function exchangeElement(firstElement, secondElement) {
-    // 交换数据
-    let tempX = firstElement.dataset.x;
-    let tempY = firstElement.dataset.y;
-    
-    firstElement.setAttribute('data-x', secondElement.dataset.x);
-    firstElement.setAttribute('data-y', secondElement.dataset.y);
-    
-    secondElement.setAttribute('data-x', tempX);
-    secondElement.setAttribute('data-y', tempY);
-    
-    // 交换位置
-    let temp = document.createElement('div');
-    container.replaceChild(temp, secondElement);
-    container.replaceChild(secondElement, firstElement);
-    container.replaceChild(firstElement, temp);
-}
+// 拖动相关代码已移动到 drag.js
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
@@ -989,8 +680,37 @@ function showTip() {
     for (let i = 0; i < tipPage.length; i++) {
         tipPage[i].style.display = 'block';
     }
+    // 确保按钮容器和按钮都可见
+    const btnContainer = document.querySelector('.tip-box .btn-container');
+    const downloadBtn = document.getElementById('downloadImgBtn');
+    const okBtn = document.getElementById('okBtn');
+    if (btnContainer) {
+        btnContainer.style.display = 'flex';
+        btnContainer.style.visibility = 'visible';
+        btnContainer.style.opacity = '1';
+    }
+    if (downloadBtn) {
+        downloadBtn.style.display = 'inline-block';
+        downloadBtn.style.visibility = 'visible';
+        downloadBtn.style.opacity = '1';
+    }
+    if (okBtn) {
+        okBtn.style.display = 'inline-block';
+        okBtn.style.visibility = 'visible';
+        okBtn.style.opacity = '1';
+    }
     // 触发礼花动画
     launchConfetti();
+}
+
+// 添加遮罩层点击关闭功能
+if (maskElement) {
+    maskElement.addEventListener('click', function(e) {
+        // 如果点击的是遮罩本身（不是提示框），则关闭
+        if (e.target === maskElement) {
+            hidenTip();
+        }
+    });
 }
 
 function hidenTip() {
@@ -1002,6 +722,8 @@ function hidenTip() {
     if (existing && existing.parentNode) {
         existing.parentNode.removeChild(existing);
     }
+    // 重置完成状态，允许继续游戏
+    finished = false;
 }
 
 function isFinish() {
@@ -1021,19 +743,19 @@ function isFinish() {
         sidebar.addEventListener('mouseover', () => sidebar.classList.add('expanded'));
         sidebar.addEventListener('mouseout', () => sidebar.classList.remove('expanded'));
 
-        // Handle copy link functionality
+        // Handle auto-load image from sidebar links
         document.querySelectorAll('.sidebar-content a').forEach(link => {
             link.addEventListener('click', event => {
                 event.preventDefault();
                 const url = link.getAttribute('data-url');
                 
-                navigator.clipboard.writeText(url)
-                    .then(() => {
-                        tooltip.textContent = '链接已复制!';
+                // 自动加载图片并重新初始化游戏
+                init(url);
+                
+                // 显示加载提示
+                tooltip.textContent = '正在加载图片...';
                         tooltip.classList.add('show');
                         setTimeout(() => tooltip.classList.remove('show'), 2000);
-                    })
-                    .catch(err => console.error('Failed to copy:', err));
             });
         });
 
@@ -1116,39 +838,6 @@ function isFinish() {
             requestAnimationFrame(tick);
         }
 </script>
-    </script>
-    
-        <style>
-        .corner-links {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            display: flex;
-            align-items: center;
-            z-index: 9999;
-        }
-        .corner-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            color: #212529;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .corner-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-        .corner-link img,
-        .corner-link svg {
-            width: 22px;
-            height: 22px;
-        }
-        .corner-link .label {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-    </style>
+    <script src="drag.js"></script>
+</body>
 </html>

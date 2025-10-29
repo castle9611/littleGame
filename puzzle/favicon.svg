@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <!-- 渐变背景 -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 内阴影效果 -->
+    <filter id="insetShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 圆形背景 -->
+  <circle cx="32" cy="32" r="28" fill="url(#bg)"/>
+  
+  <!-- 拼图图标 - 简洁风格 -->
+  <!-- 主拼图块 -->
+  <g transform="translate(32, 32)">
+    <!-- 中心块 -->
+    <rect x="-8" y="-8" width="16" height="16" rx="2" fill="#FFFFFF" opacity="0.95"/>
+    
+    <!-- 凸出的连接点（上下左右） -->
+    <!-- 顶部 -->
+    <path d="M -4 -8 L -2 -10 L 2 -10 L 4 -8 L 4 -12 L -4 -12 Z" fill="#FFFFFF" opacity="0.95"/>
+    <!-- 底部 -->
+    <path d="M -4 8 L -2 10 L 2 10 L 4 8 L 4 12 L -4 12 Z" fill="#FFFFFF" opacity="0.95"/>
+    <!-- 左侧 -->
+    <path d="M -8 -4 L -10 -2 L -10 2 L -8 4 L -12 4 L -12 -4 Z" fill="#FFFFFF" opacity="0.95"/>
+    <!-- 右侧 -->
+    <path d="M 8 -4 L 10 -2 L 10 2 L 8 4 L 12 4 L 12 -4 Z" fill="#FFFFFF" opacity="0.95"/>
+  </g>
+  
+  <!-- 装饰点 -->
+  <circle cx="32" cy="16" r="2" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="48" cy="32" r="2" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="32" cy="48" r="2" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="16" cy="32" r="2" fill="#FFFFFF" opacity="0.6"/>
+</svg>
