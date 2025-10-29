@@ -1,1 +1,150 @@
-<!DOCTYPE html><html lang="zh-cn"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>小游戏合集</title>    <style>        * {            margin: 0;            padding: 0;            box-sizing: border-box;        }        body {            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;            background: #f5f5f5;            min-height: 100vh;            padding: 40px 20px;        }        .container {            max-width: 800px;            margin: 0 auto;        }        h1 {            font-size: 32px;            color: #333;            text-align: center;            margin-bottom: 40px;        }        .games-list {            display: grid;            gap: 20px;        }        .game-item {            background: #fff;            border: 1px solid #e0e0e0;            border-radius: 8px;            padding: 24px;            display: flex;            align-items: center;            gap: 20px;            transition: box-shadow 0.2s;        }        .game-item:hover {            box-shadow: 0 2px 8px rgba(0,0,0,0.1);        }        .game-icon {            font-size: 48px;        }        .game-info {            flex: 1;        }        .game-title {            font-size: 20px;            color: #333;            margin-bottom: 8px;        }        .game-description {            font-size: 14px;            color: #666;            line-height: 1.5;        }        .game-link {            padding: 8px 20px;            background: #007AFF;            color: #fff;            text-decoration: none;            border-radius: 4px;            font-size: 14px;        }        .game-link:hover {            background: #0066CC;        }        @media (max-width: 600px) {            h1 {                font-size: 24px;            }            .game-item {                flex-direction: column;                text-align: center;            }            .game-link {                width: 100%;            }        }    </style></head><body>    <div class="container">        <h1>🎮 小游戏合集</h1>        <div class="games-list">            <div class="game-item">                <span class="game-icon">🧩</span>                <div class="game-info">                    <h2 class="game-title">拼图游戏</h2>                    <p class="game-description">经典拼图游戏，支持自定义难度和图片</p>                </div>                <a href="puzzle/index.html" class="game-link">开始</a>            </div>            <div class="game-item">                <span class="game-icon">🐑</span>                <div class="game-info">                    <h2 class="game-title">羊了个羊</h2>                    <p class="game-description">三消类益智游戏，挑战你的策略</p>                </div>                <a href="yangly/index.html" class="game-link">开始</a>            </div>        </div>    </div></body></html>
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小游戏合集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .games-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .game-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .game-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .game-icon {
+            font-size: 48px;
+        }
+
+        .game-info {
+            flex: 1;
+        }
+
+        .game-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .game-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .game-link {
+            padding: 8px 20px;
+            background: #007AFF;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .game-link:hover {
+            background: #0066CC;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 12px;
+            }
+            
+            h1 {
+                font-size: 20px;
+                margin-bottom: 24px;
+            }
+
+            .game-item {
+                flex-direction: column;
+                text-align: center;
+                padding: 16px;
+                gap: 12px;
+            }
+            
+            .game-icon {
+                font-size: 36px;
+            }
+            
+            .game-title {
+                font-size: 18px;
+            }
+            
+            .game-description {
+                font-size: 13px;
+                margin-bottom: 12px;
+            }
+
+            .game-link {
+                width: 100%;
+                padding: 10px 16px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 小游戏合集</h1>
+
+        <div class="games-list">
+            <div class="game-item">
+                <span class="game-icon">🧩</span>
+                <div class="game-info">
+                    <h2 class="game-title">拼图游戏</h2>
+                    <p class="game-description">经典拼图游戏，支持自定义难度和图片</p>
+                </div>
+                <a href="puzzle/index.html" class="game-link">开始</a>
+            </div>
+
+            <div class="game-item">
+                <span class="game-icon">🐑</span>
+                <div class="game-info">
+                    <h2 class="game-title">羊了个羊</h2>
+                    <p class="game-description">三消类益智游戏，挑战你的策略</p>
+                </div>
+                <a href="yangly/index.html" class="game-link">开始</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
