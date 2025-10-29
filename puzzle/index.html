@@ -51,7 +51,7 @@
     </div>
 
     <div class="sidebar" id="sidebar">
-        <h4>URL 链接</h4>
+        <h4>链接选择</h4>
         <div class="sidebar-content">
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php">三次元</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/cos.php">COSPLAY</a></p>
@@ -65,12 +65,7 @@
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=suiji&gs=images">手机随机</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=dongman&gs=images">手机动漫</a></p>
         </div>
-        <div class="sidebar-footer">
-            © 2025 出自 <a href="https://github.com/IIIStudio/PuzzleGame" target="_blank" style="color: white; text-decoration: none;">puzzle-game</a>
-
-        </div>
     </div>
-    <div class="tooltip" id="tooltip">链接已复制!</div>
 <script>
 let container = document.getElementById('canvasContainer');
 let yNumberElement = document.getElementById('yNumber');
@@ -81,6 +76,7 @@ let maskElement = document.querySelector('.mask.tip-page');
 let lastImageOriginUrl = ''; // 记录当前拼图所用的原始图片地址（不带时间戳）
 let lastImageLoadedUrl = ''; // 记录浏览器实际加载的最终图片地址（可能为跳转后的真实 URL）
 let lastImageBlobUrl = '';   // 缓存当前图片的 Blob 对象 URL，下载时优先使用
+let currentImageElement = null; // 保存当前显示的图片对象，下载时优先使用
 // 尝试解析跳转后的最终图片 URL（若跨域不允许，可能失败）
 async function resolveFinalUrl(url) {
     try {
@@ -366,29 +362,25 @@ if (downloadBtnEl) {
         e.stopPropagation();
         e.preventDefault();
         
-        // 下载优先级：Blob 对象 URL > 实际加载的最终地址 > 原始地址
-        let urlToDownload = lastImageBlobUrl || lastImageLoadedUrl || lastImageOriginUrl;
+        // 下载优先级：Blob 对象 URL > 图片对象的 currentSrc > 实际加载的最终地址 > 原始地址
+        let urlToDownload = lastImageBlobUrl;
+        if (!urlToDownload) {
+            // 优先使用图片对象的 currentSrc（这是浏览器实际加载的地址）
+            if (currentImageElement && currentImageElement.currentSrc) {
+                urlToDownload = currentImageElement.currentSrc;
+            } else if (currentImageElement && currentImageElement.src) {
+                urlToDownload = currentImageElement.src;
+            } else {
+                urlToDownload = lastImageLoadedUrl || lastImageOriginUrl;
+            }
+        }
         if (!urlToDownload) {
             alert('当前没有可下载的图片');
             return;
         }
         
-        try {
-            // 如果使用 Blob URL，直接下载
-            if (lastImageBlobUrl) {
-                const link = document.createElement('a');
-                link.href = lastImageBlobUrl;
-                link.download = 'puzzle-image.jpg';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                }, 100);
-                return;
-            }
-            
-            // 否则尝试通过 fetch 获取图片（处理跨域）
+        // 方法2: 尝试通过 fetch 获取图片（处理跨域）
+        async function tryFetchDownload() {
             try {
                 const response = await fetch(urlToDownload, { 
                     mode: 'cors',
@@ -407,21 +399,113 @@ if (downloadBtnEl) {
                         document.body.removeChild(link);
                         URL.revokeObjectURL(blobUrl);
                     }, 100);
+                    return true;
                 } else {
                     throw new Error('Fetch failed');
                 }
             } catch (fetchError) {
-                // 如果 fetch 失败（跨域限制），尝试直接打开链接
+                // 方法3: 尝试 no-cors 模式（某些情况下可用）
+                try {
+                    const response = await fetch(urlToDownload, { 
+                        mode: 'no-cors'
+                    });
+                    const blob = await response.blob();
+                    if (blob && blob.size > 0) {
+                        const blobUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = 'puzzle-image.jpg';
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => {
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(blobUrl);
+                        }, 100);
+                        return true;
+                    }
+                } catch (noCorsError) {
+                    console.log('no-cors 模式也失败:', noCorsError);
+                }
+                
+                // 方法4: 最后的备选方案
+                console.error('所有下载方法都失败:', fetchError);
+                return false;
+            }
+        }
+        
+        try {
+            // 如果使用 Blob URL，直接下载
+            if (lastImageBlobUrl) {
                 const link = document.createElement('a');
-                link.href = urlToDownload;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
+                link.href = lastImageBlobUrl;
+                link.download = 'puzzle-image.jpg';
                 link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();
                 setTimeout(() => {
                     document.body.removeChild(link);
                 }, 100);
+                return;
+            }
+            
+            // 方法1: 尝试通过 Canvas 转换（最可靠，即使是跨域图片）
+            if (currentImageElement && currentImageElement.complete && currentImageElement.naturalWidth > 0) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = currentImageElement.naturalWidth;
+                    canvas.height = currentImageElement.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 尝试绘制图片（可能因为跨域而失败）
+                    try {
+                        ctx.drawImage(currentImageElement, 0, 0);
+                    } catch (drawError) {
+                        // 跨域安全错误，无法使用 Canvas
+                        throw new Error('Canvas tainted by cross-origin data');
+                    }
+                    
+                    // 使用 Promise 包装 toBlob，以便更好地处理异步
+                    const canvasSuccess = await new Promise((resolve) => {
+                        try {
+                            canvas.toBlob(function(blob) {
+                                if (blob) {
+                                    const blobUrl = URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = blobUrl;
+                                    link.download = 'puzzle-image.jpg';
+                                    link.style.display = 'none';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    setTimeout(() => {
+                                        document.body.removeChild(link);
+                                        URL.revokeObjectURL(blobUrl);
+                                    }, 100);
+                                    resolve(true);
+                                } else {
+                                    resolve(false);
+                                }
+                            }, 'image/jpeg', 0.95);
+                        } catch (toBlobError) {
+                            // toBlob 也可能因为安全限制失败
+                            console.log('toBlob 失败:', toBlobError);
+                            resolve(false);
+                        }
+                    });
+                    
+                    if (canvasSuccess) {
+                        return; // Canvas 转换成功，退出
+                    }
+                } catch (canvasError) {
+                    console.log('Canvas 转换失败，尝试其他方法:', canvasError);
+                    // 继续尝试 fetch 方法
+                }
+            }
+            
+            // 如果 Canvas 失败或不可用，尝试 fetch
+            const fetchSuccess = await tryFetchDownload();
+            if (!fetchSuccess) {
+                alert('由于跨域限制，无法直接下载。请右键图片选择"图片另存为"，或在图片上右键保存。');
             }
         } catch (error) {
             console.error('下载失败:', error);
@@ -442,6 +526,8 @@ function init(imageUrl) {
 
     getRotateImage(imageUrl).then((image) => {
         img = image;
+        // 保存当前图片对象，供下载时使用
+        currentImageElement = image;
         
         let fixedHeight = 580;
         let imageWidth = img.width;
@@ -646,7 +732,11 @@ function getRotateImage(imageUrl) {
         });
         // 注意：最终地址在 onload 中通过 currentSrc 记录
         return new Promise((resolve, reject) => {
-            image.onload = () => resolve(image);
+            image.onload = () => {
+                // 记录最终地址；若解析失败则用 currentSrc/带时间戳的地址
+                lastImageLoadedUrl = image.currentSrc || urlWithTimestamp;
+                resolve(image);
+            };
             image.onerror = reject;
         });
     }
