@@ -8,6 +8,8 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <!-- html2canvas库用于截取DOM元素为图片 -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -66,6 +68,7 @@
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?zd=mobile&fl=dongman&gs=images">手机动漫</a></p>
         </div>
     </div>
+    <div id="tooltip" class="tooltip"></div>
 <script>
 let container = document.getElementById('canvasContainer');
 let yNumberElement = document.getElementById('yNumber');
@@ -77,6 +80,7 @@ let lastImageOriginUrl = ''; // 记录当前拼图所用的原始图片地址（
 let lastImageLoadedUrl = ''; // 记录浏览器实际加载的最终图片地址（可能为跳转后的真实 URL）
 let lastImageBlobUrl = '';   // 缓存当前图片的 Blob 对象 URL，下载时优先使用
 let currentImageElement = null; // 保存当前显示的图片对象，下载时优先使用
+let isImageCorsEnabled = true; // 标记当前图片是否支持CORS（影响下载方式）
 // 尝试解析跳转后的最终图片 URL（若跨域不允许，可能失败）
 async function resolveFinalUrl(url) {
     try {
@@ -87,27 +91,6 @@ async function resolveFinalUrl(url) {
         }
     } catch { /* 忽略错误，回退原地址 */ }
     return url;
-}
-// 尝试抓取图片 Blob 并缓存对象 URL（可能受 CORS 限制）
-async function cacheImageBlob(url) {
-    try {
-        const res = await fetch(url, { redirect: 'follow' });
-        if (!res.ok) throw new Error('network');
-        const blob = await res.blob();
-        // 释放旧的对象 URL
-        if (lastImageBlobUrl) {
-            try { URL.revokeObjectURL(lastImageBlobUrl); } catch {}
-        }
-        lastImageBlobUrl = URL.createObjectURL(blob);
-        console.log('✓ 图片 Blob 缓存成功，下载时将使用缓存版本');
-    } catch (error) {
-        // 如果缓存失败，清空 Blob URL，避免下载旧图片
-        console.log('⚠ 图片 Blob 缓存失败（可能是跨域限制），下载时将使用原始 URL');
-        if (lastImageBlobUrl) {
-            try { URL.revokeObjectURL(lastImageBlobUrl); } catch {}
-        }
-        lastImageBlobUrl = '';
-    }
 }
 
 let finished = false;
@@ -137,8 +120,8 @@ if (downloadBtnEl) {
     });
 }
 
-// 下载拼图截图
-function downloadPuzzleImage() {
+// 下载拼图截图 - 手动重绘canvas避免跨域限制
+async function downloadPuzzleImage() {
     const container = document.getElementById('canvasContainer');
     if (!container || !container.children.length) {
         alert('当前没有可下载的拼图');
@@ -151,34 +134,204 @@ function downloadPuzzleImage() {
         return;
     }
     
+    console.log('📸 正在生成拼图图片...');
+    
+    // 检查是否是跨域模式
+    if (!isImageCorsEnabled) {
+        console.log('⚠ 检测到跨域图片，直接复制拼图块的canvas（绕过跨域限制）');
+        
+        // 关键发现：虽然原始图片是跨域的，但是拼图块的canvas已经被绘制了
+        // 我们可以直接读取这些canvas并重新组合成完整图片！
+        // canvas.drawImage(anotherCanvas) 不受跨域限制！
+        try {
+            // 获取容器尺寸
+            const containerRect = container.getBoundingClientRect();
+            const width = Math.floor(containerRect.width);
+            const height = Math.floor(containerRect.height);
+            
+            console.log(`容器尺寸: ${width}x${height}`);
+            
+            // 创建新canvas用于合成
+            const outputCanvas = document.createElement('canvas');
+            outputCanvas.width = width * 2; // 2倍提高清晰度
+            outputCanvas.height = height * 2;
+            const ctx = outputCanvas.getContext('2d');
+            ctx.scale(2, 2);
+            
+            // 背景色
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, width, height);
+            
+            // 获取所有拼图块
+            const pieces = Array.from(container.querySelectorAll('.item'));
+            console.log(`找到 ${pieces.length} 个拼图块`);
+            
+            if (pieces.length === 0) {
+                alert('没有找到拼图块，请先开始游戏');
+                return;
+            }
+            
+            let successCount = 0;
+            for (const piece of pieces) {
+                const pieceCanvas = piece.querySelector('canvas');
+                if (!pieceCanvas) continue;
+                
+                // 获取拼图块相对于容器的位置
+                const pieceRect = pieceCanvas.getBoundingClientRect();
+                const x = pieceRect.left - containerRect.left;
+                const y = pieceRect.top - containerRect.top;
+                
+                try {
+                    // 关键：canvas.drawImage(另一个canvas) 不受跨域限制！
+                    // 即使源图片是跨域的，canvas元素本身可以被复制
+                    ctx.drawImage(pieceCanvas, x, y);
+                    successCount++;
+                } catch (err) {
+                    console.warn('绘制拼图块失败:', err);
+                }
+            }
+            
+            console.log(`✓ 成功绘制 ${successCount}/${pieces.length} 个拼图块`);
+            
+            // 导出图片
+            outputCanvas.toBlob((blob) => {
+                if (!blob) {
+                    alert('生成图片失败');
+                    return;
+                }
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'puzzle-completed.png';
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log('✅ 拼图图片下载成功（canvas复制方案）');
+            }, 'image/png', 1.0);
+            
+        } catch (error) {
+            console.error('处理失败:', error);
+            alert(`⚠️ 下载失败：${error.message}
+
+✅ 建议：使用"上传图片"按钮选择本地图片`);
+        }
+        return;
+    }
+    
+    // CORS图片，可以直接使用canvas绘制
     try {
-        // 获取原始图片尺寸
-        const img = currentImageElement;
-        const imgWidth = img.naturalWidth || img.width;
-        const imgHeight = img.naturalHeight || img.height;
+        // 获取容器尺寸
+        const containerRect = container.getBoundingClientRect();
+        const width = Math.floor(containerRect.width);
+        const height = Math.floor(containerRect.height);
         
-        // 创建canvas（使用原始图片尺寸以保证质量）
+        // 创建新canvas手动绘制
         const canvas = document.createElement('canvas');
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
+        canvas.width = width * 2; // 2倍提高清晰度
+        canvas.height = height * 2;
         const ctx = canvas.getContext('2d');
+        ctx.scale(2, 2);
         
-        // 直接绘制完整图片
-        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+        // 背景色
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, width, height);
         
-        // 转换为Blob并下载
-        canvas.toBlob(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'puzzle-completed.png';
-            a.click();
-            URL.revokeObjectURL(url);
-            console.log('✓ 拼图截图下载成功');
-        }, 'image/png');
+        // 遍历所有拼图块（每个拼图块是一个.item，里面有canvas）
+        const pieces = Array.from(container.querySelectorAll('.item'));
+        console.log(`找到 ${pieces.length} 个拼图块`);
+        
+        if (pieces.length === 0) {
+            alert('没有找到拼图块，请先开始游戏');
+            return;
+        }
+        
+        let drawnCount = 0;
+        for (const piece of pieces) {
+            // 获取拼图块内的canvas
+            const pieceCanvas = piece.querySelector('canvas');
+            if (!pieceCanvas) {
+                console.warn('拼图块没有canvas:', piece);
+                continue;
+            }
+            
+            // 获取拼图块的位置（相对于容器）
+            const pieceRect = piece.getBoundingClientRect();
+            const x = pieceRect.left - containerRect.left;
+            const y = pieceRect.top - containerRect.top;
+            
+            try {
+                // 直接绘制拼图块的canvas到大canvas上
+                ctx.drawImage(pieceCanvas, x, y);
+                drawnCount++;
+            } catch (err) {
+                console.warn('绘制拼图块失败:', err, piece);
+            }
+        }
+        
+        console.log(`成功绘制 ${drawnCount} 个拼图块`);
+        
+        // 导出并下载
+        const dataUrl = canvas.toDataURL('image/png', 1.0);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'puzzle-completed.png';
+        a.click();
+        
+        console.log('✓ 拼图图片下载成功');
+        
     } catch (error) {
-        console.error('下载拼图失败:', error);
-        alert('下载失败，请稍后重试');
+        console.error('生成图片失败:', error);
+        alert('生成图片失败：' + error.message);
+    }
+}
+
+// 直接下载图片URL（用于非CORS图片）
+async function downloadImageDirectly() {
+    const downloadUrl = lastImageLoadedUrl || lastImageOriginUrl;
+    if (!downloadUrl) {
+        alert('无法获取图片下载链接');
+        return;
+    }
+    
+    try {
+        console.log('📥 正在下载图片...', downloadUrl);
+        
+        // 尝试通过fetch下载（可能会失败如果CORS不允许）
+        try {
+            const response = await fetch(downloadUrl);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'puzzle-image.jpg';
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log('✓ 图片下载成功（通过fetch）');
+                return;
+            }
+        } catch (fetchError) {
+            console.log('⚠ Fetch下载失败，尝试直接链接下载');
+        }
+        
+        // 如果fetch失败，直接创建链接下载
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'puzzle-image.jpg';
+        a.target = '_blank'; // 在新标签页打开，用户可以手动保存
+        a.click();
+        console.log('✓ 已打开图片链接（请手动保存）');
+        
+        // 显示提示
+        const tooltip = document.getElementById('tooltip');
+        if (tooltip) {
+            tooltip.textContent = '图片已在新标签页打开，请右键保存';
+            tooltip.classList.add('show');
+            setTimeout(() => tooltip.classList.remove('show'), 3000);
+        }
+    } catch (error) {
+        console.error('下载失败:', error);
+        alert('下载失败，请尝试右键保存图片');
     }
 }
 
@@ -199,11 +352,20 @@ function init(imageUrl) {
         lastImageBlobUrl = '';
     }
     currentImageElement = null;
+    isImageCorsEnabled = true; // 重置CORS标记（默认假设支持）
 
     getRotateImage(imageUrl).then((image) => {
         img = image;
         // 保存当前图片对象，供下载时使用
         currentImageElement = image;
+        
+        // 显示成功提示
+        const tooltip = document.getElementById('tooltip');
+        if (tooltip) {
+            tooltip.textContent = '图片加载成功！';
+            tooltip.classList.add('show');
+            setTimeout(() => tooltip.classList.remove('show'), 2000);
+        }
         
         let fixedHeight = 580;
         let imageWidth = img.width;
@@ -238,6 +400,20 @@ function init(imageUrl) {
             }
         }
         moveCube();
+    }).catch((error) => {
+        // 图片加载失败时的处理
+        console.error('图片加载失败:', error);
+        const tooltip = document.getElementById('tooltip');
+        if (tooltip) {
+            tooltip.textContent = '图片加载失败，请尝试其他图片源';
+            tooltip.classList.add('show');
+            setTimeout(() => tooltip.classList.remove('show'), 3000);
+        }
+        // 如果是首次加载失败，使用默认图片
+        if (!currentImageElement) {
+            console.log('尝试加载默认图片...');
+            init(null); // 使用默认本地图片
+        }
     });
 
     function initCube(i, j) {
@@ -320,9 +496,6 @@ function addQueryParam(url, paramName, paramValue) {
 }
 
 function getRotateImage(imageUrl) {
-    let image = new Image();
-    // 设置跨域属性，允许 canvas 操作外部图片
-    image.crossOrigin = "anonymous";
     // 如果提供了URL参数且不为null，则使用；否则使用默认本地图片
     // imageUrl 为 null 或 undefined 时，使用默认本地图片
     let inputUrl = (imageUrl !== null && imageUrl !== undefined) ? imageUrl.trim() : '';
@@ -341,20 +514,8 @@ function getRotateImage(imageUrl) {
                 let timestamp = new Date().getTime();
                 let randomNum = Math.random().toString(36).substring(7);
                 let urlWithTimestamp = addQueryParam(addQueryParam(imageUrl, 'timestamp', timestamp), 'rand', randomNum);
-                // 先尝试解析最终 URL（避免再次命中随机 API）
-                resolveFinalUrl(urlWithTimestamp).then(finalUrl => {
-                    image.src = finalUrl;
-                });
-                return new Promise((resolve, reject) => {
-                    image.onload = () => {
-                        // 记录最终地址；若解析失败则用 currentSrc/带时间戳的地址
-                        lastImageLoadedUrl = image.currentSrc || urlWithTimestamp;
-                        // 图片加载成功后，尝试缓存 Blob 对象 URL（若跨域允许）
-                        cacheImageBlob(lastImageLoadedUrl);
-                        resolve(image);
-                    };
-                    image.onerror = reject;
-                });
+                
+                return tryLoadImage(urlWithTimestamp);
             } else {
                 return Promise.reject("在 txt 文件中未找到图像。");
             }
@@ -368,21 +529,103 @@ function getRotateImage(imageUrl) {
         let randomNum = Math.random().toString(36).substring(7);
         // 使用辅助函数正确添加参数（处理URL已包含查询参数的情况）
         let urlWithTimestamp = addQueryParam(addQueryParam(imageUrl, '_t', timestamp), '_r', randomNum);
-        // 先尝试解析最终 URL 并赋值
-        resolveFinalUrl(urlWithTimestamp).then(finalUrl => {
-            image.src = finalUrl;
+        
+        return tryLoadImage(urlWithTimestamp);
+    }
+}
+
+// 尝试加载图片，优先使用fetch缓存方案避免跨域问题
+async function tryLoadImage(url) {
+    console.log('🔄 尝试加载图片:', url);
+    
+    // 方案1：尝试通过 fetch 获取图片数据并转为 blob URL
+    // 这样创建的图片完全没有跨域限制！
+    try {
+        console.log('📥 尝试通过 fetch 下载图片数据...');
+        const response = await fetch(url, {
+            mode: 'cors',
+            credentials: 'omit',
+            cache: 'default'
         });
-        // 注意：最终地址在 onload 中通过 currentSrc 记录
-        return new Promise((resolve, reject) => {
+        if (response.ok) {
+            const blob = await response.blob();
+            // 释放旧的 blob URL
+            if (lastImageBlobUrl) {
+                try { URL.revokeObjectURL(lastImageBlobUrl); } catch {}
+            }
+            // 创建新的 blob URL
+            lastImageBlobUrl = URL.createObjectURL(blob);
+            console.log('✓ 图片数据下载成功，创建 Blob URL');
+            
+            // 使用 blob URL 加载图片（完全无跨域问题）
+            const image = new Image();
+            return new Promise((resolve, reject) => {
+                image.onload = () => {
+                    console.log('✓ 图片加载成功（Blob模式，无跨域限制）');
+                    lastImageLoadedUrl = lastImageBlobUrl;
+                    currentImageElement = image;
+                    isImageCorsEnabled = true; // Blob URL 没有跨域限制
+                    resolve(image);
+                };
+                image.onerror = () => {
+                    console.error('✗ Blob URL 图片加载失败');
+                    reject(new Error('Blob URL 图片加载失败'));
+                };
+                image.src = lastImageBlobUrl;
+            });
+        }
+    } catch (fetchError) {
+        console.log('⚠ Fetch 下载失败，尝试传统加载方式...', fetchError.message);
+    }
+    
+    // 方案2：fetch 失败时，尝试带 crossOrigin 的传统加载
+    try {
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        
+        return await new Promise((resolve, reject) => {
+            let resolved = false;
+            
             image.onload = () => {
-                // 记录最终地址；若解析失败则用 currentSrc/带时间戳的地址
-                lastImageLoadedUrl = image.currentSrc || urlWithTimestamp;
-                // 图片加载成功后，尝试缓存 Blob 对象 URL（若跨域允许）
-                cacheImageBlob(lastImageLoadedUrl);
+                if (resolved) return;
+                resolved = true;
+                console.log('✓ 图片加载成功（CORS模式）');
+                lastImageLoadedUrl = image.currentSrc || url;
+                currentImageElement = image;
+                isImageCorsEnabled = true;
                 resolve(image);
             };
-            image.onerror = reject;
+            
+            image.onerror = () => {
+                if (resolved) return;
+                resolved = true;
+                console.log('⚠ CORS加载失败，尝试非CORS模式...');
+                
+                // 方案3：最后尝试不带 crossOrigin 的加载
+                const image2 = new Image();
+                
+                image2.onload = () => {
+                    console.log('✓ 图片加载成功（非CORS模式）');
+                    console.log('⚠ 警告：此模式下无法下载拼图图片');
+                    lastImageLoadedUrl = image2.currentSrc || url;
+                    currentImageElement = image2;
+                    isImageCorsEnabled = false;
+                    lastImageBlobUrl = '';
+                    resolve(image2);
+                };
+                
+                image2.onerror = () => {
+                    console.error('✗ 图片加载失败:', url);
+                    reject(new Error('图片加载失败，请尝试其他图片源'));
+                };
+                
+                image2.src = url;
+            };
+            
+            image.src = url;
         });
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -519,13 +762,14 @@ function autoSolve() {
                 event.preventDefault();
                 const url = link.getAttribute('data-url');
                 
+                // 显示加载提示
+                if (tooltip) {
+                    tooltip.textContent = '正在加载图片...';
+                    tooltip.classList.add('show');
+                }
+                
                 // 自动加载图片并重新初始化游戏
                 init(url);
-                
-                // 显示加载提示
-                tooltip.textContent = '正在加载图片...';
-                        tooltip.classList.add('show');
-                        setTimeout(() => tooltip.classList.remove('show'), 2000);
             });
         });
 
