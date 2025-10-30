@@ -9,34 +9,6 @@ let touchStartElement = null;
 let touchStartTime = 0;
 let touchStartPos = { x: 0, y: 0 };
 
-// 检查是否处于旋转模式
-function isRotated() {
-    const mainContainer = document.getElementById('mainContainer');
-    return mainContainer && mainContainer.classList.contains('rotated');
-}
-
-// 将屏幕坐标转换为逻辑坐标（考虑旋转）
-function transformCoordinates(deltaX, deltaY) {
-    if (!isRotated()) {
-        return { x: deltaX, y: deltaY };
-    }
-    // 顺时针旋转90度后的坐标转换：
-    // 屏幕向右（deltaX+）→ 逻辑向上（y-）
-    // 屏幕向下（deltaY+）→ 逻辑向右（x+）
-    // 即：逻辑x = 屏幕y，逻辑y = -屏幕x
-    return { x: deltaY, y: -deltaX };
-}
-
-// 将逻辑坐标转换为屏幕坐标（用于视觉反馈）
-function transformCoordinatesForDisplay(deltaX, deltaY) {
-    if (!isRotated()) {
-        return { x: deltaX, y: deltaY };
-    }
-    // 反向转换：逻辑x = 屏幕y，逻辑y = -屏幕x
-    // 所以：屏幕x = -逻辑y，屏幕y = 逻辑x
-    return { x: -deltaY, y: deltaX };
-}
-
 // 鼠标拖拽事件处理
 function onDragStart(e) {
     if (finished) {
@@ -91,17 +63,13 @@ function onTouchMove(e) {
     e.preventDefault();
     // 添加轻微的拖动效果
     const touch = e.touches[0];
-    const screenDeltaX = touch.clientX - touchStartPos.x;
-    const screenDeltaY = touch.clientY - touchStartPos.y;
-    
-    // 转换为逻辑坐标判断移动距离
-    const logicalCoords = transformCoordinates(screenDeltaX, screenDeltaY);
-    const moveDistance = Math.abs(logicalCoords.x) + Math.abs(logicalCoords.y);
+    const deltaX = touch.clientX - touchStartPos.x;
+    const deltaY = touch.clientY - touchStartPos.y;
+    const moveDistance = Math.abs(deltaX) + Math.abs(deltaY);
     
     // 超过5px才开始移动视觉反馈
-    // 注意：视觉反馈使用屏幕坐标，因为元素在旋转容器中显示
     if (moveDistance > 5 && touchStartElement) {
-        touchStartElement.style.transform = `translate(${screenDeltaX}px, ${screenDeltaY}px) scale(1.05)`;
+        touchStartElement.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.05)`;
         touchStartElement.style.opacity = '0.8';
     }
 }
@@ -119,48 +87,15 @@ function onTouchEnd(e) {
     currentElement.style.opacity = '1';
     currentElement.style.transform = '';
     
-    // 计算屏幕移动距离和逻辑移动距离
-    const screenDeltaX = endX - touchStartPos.x;
-    const screenDeltaY = endY - touchStartPos.y;
-    const logicalCoords = transformCoordinates(screenDeltaX, screenDeltaY);
-    const moveDistance = Math.abs(logicalCoords.x) + Math.abs(logicalCoords.y);
-    const timeDiff = Date.now() - touchStartTime;
+    // 计算移动距离
+    const deltaX = endX - touchStartPos.x;
+    const deltaY = endY - touchStartPos.y;
+    const moveDistance = Math.abs(deltaX) + Math.abs(deltaY);
     
     // 如果是拖拽操作
     if (moveDistance >= 15) {
-        let targetItem = null;
-        
-        // 获取当前元素的逻辑坐标
-        const currentX = parseInt(currentElement.dataset.x);
-        const currentY = parseInt(currentElement.dataset.y);
-        
-        // 根据逻辑移动方向，找到目标位置（取移动方向的主要方向）
-        let targetX = currentX;
-        let targetY = currentY;
-        
-        if (Math.abs(logicalCoords.x) > Math.abs(logicalCoords.y)) {
-            // 主要是水平移动
-            targetX = logicalCoords.x > 0 ? currentX + 1 : currentX - 1;
-        } else {
-            // 主要是垂直移动
-            targetY = logicalCoords.y > 0 ? currentY + 1 : currentY - 1;
-        }
-        
-        // 根据逻辑坐标找到目标元素
-        const items = container.querySelectorAll('.item');
-        items.forEach(item => {
-            const itemX = parseInt(item.dataset.x);
-            const itemY = parseInt(item.dataset.y);
-            if (itemX === targetX && itemY === targetY) {
-                targetItem = item;
-            }
-        });
-        
-        // 如果没找到基于逻辑坐标的目标，则使用屏幕坐标作为后备方案
-        if (!targetItem) {
-            const dropElement = document.elementFromPoint(endX, endY);
-            targetItem = findClosestItem(dropElement, endX, endY);
-        }
+        const dropElement = document.elementFromPoint(endX, endY);
+        const targetItem = findClosestItem(dropElement, endX, endY);
         
         if (targetItem && currentElement !== targetItem) {
             exchangeElement(currentElement, targetItem);

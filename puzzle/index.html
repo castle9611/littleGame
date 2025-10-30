@@ -15,29 +15,6 @@
     <div class="container">
         <div class="main-container">
             <div class="image-container" id="canvasContainer"></div>
-            <div class="btn-container" id="btnContainer">
-                <button type="button" class="toggle-controls-btn" id="toggleControlsBtn" title="折叠/展开控制面板">
-                    <i class="fas fa-chevron-up"></i>
-                </button>
-                <span>难度选择：</span>
-                <select id="yNumber">
-                    <option value="3">3</option>
-                    <option value="4" selected>4</option>
-                    <option value="5">5</option>
-                </select>
-                <span>行</span>
-                <select id="xNumber">
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-                <span>列</span>
-                <button type="button" class="btn" id="startBtn">重新开始</button>
-                <button type="button" class="fullscreen-btn" id="fullscreenBtn" title="全屏显示">
-                    <i class="fas fa-expand"></i>
-                    <span>全屏</span>
-                </button>
-                </div>
         </div>
     </div>
     <div class="mask tip-page"></div>
@@ -51,8 +28,30 @@
     </div>
 
     <div class="sidebar" id="sidebar">
-        <h4>链接选择</h4>
+        <h4>游戏设置</h4>
         <div class="sidebar-content">
+            <div class="sidebar-controls">
+                <h5>难度选择</h5>
+                <div class="control-group">
+                    <label>行数：</label>
+                    <select id="yNumber">
+                        <option value="3" selected>3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>列数：</label>
+                    <select id="xNumber">
+                        <option value="3" selected>3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <button type="button" class="sidebar-btn" id="startBtn">重新开始</button>
+            </div>
+            
+            <h5>图片链接</h5>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php">三次元</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/cos.php">COSPLAY</a></p>
             <p><a href="#" target="_blank" data-url="https://imgapi.cn/api.php?fl=dongman&gs=images">二次元</a></p>
@@ -119,243 +118,6 @@ document.getElementById('okBtn').addEventListener('click', function (e) {
     hidenTip();
 });
 
-// 全屏功能
-let isFullscreen = false;
-window.isFullscreen = false; // 暴露到全局，供init函数使用
-let mainContainer = document.querySelector('.main-container');
-let fullscreenBtn = document.getElementById('fullscreenBtn');
-let fullscreenIcon = fullscreenBtn.querySelector('i');
-let fullscreenText = fullscreenBtn.querySelector('span');
-
-// 控制面板折叠状态
-let isControlsCollapsed = false;
-
-// 折叠/展开控制面板
-function toggleControls() {
-    const btnContainer = document.getElementById('btnContainer');
-    const inputContainer = document.querySelector('.input-container');
-    const toggleBtn = document.getElementById('toggleControlsBtn');
-    const toggleIcon = toggleBtn.querySelector('i');
-    
-    if (!isControlsCollapsed) {
-        // 折叠
-        btnContainer.classList.add('collapsed');
-        isControlsCollapsed = true;
-        toggleIcon.className = 'fas fa-chevron-down';
-    } else {
-        // 展开
-        btnContainer.classList.remove('collapsed');
-        isControlsCollapsed = false;
-        toggleIcon.className = 'fas fa-chevron-up';
-    }
-    
-    // 延迟调整布局，确保动画完成
-    setTimeout(() => {
-        checkAndRotate();
-        adjustLayoutForFullscreen();
-    }, 350);
-}
-
-// 调整全屏布局
-function adjustLayoutForFullscreen() {
-    if (!isFullscreen) return;
-    
-    const btnContainer = document.getElementById('btnContainer');
-    const imageContainer = document.getElementById('canvasContainer');
-    if (!imageContainer) return;
-    
-    // 根据控制面板状态调整拼图容器位置
-    const isCollapsed = btnContainer && btnContainer.classList.contains('collapsed');
-    
-    // 添加类标记，方便CSS选择（CSS会处理具体的布局）
-    if (isCollapsed) {
-        imageContainer.classList.add('collapsed-top');
-    } else {
-        imageContainer.classList.remove('collapsed-top');
-    }
-    
-    // 不再通过JS设置样式，全部由CSS控制布局和定位
-    // CSS已经通过 .main-container.fullscreen-mode .image-container 处理了
-}
-
-// 检查是否需要旋转（竖屏时旋转90度，确保完整显示）
-function checkAndRotate() {
-    if (!isFullscreen || !mainContainer) return;
-    
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    const isPortrait = screenHeight > screenWidth;
-    
-    // 获取拼图的布局信息（如果已经初始化）
-    const imageContainer = document.getElementById('canvasContainer');
-    if (!imageContainer) return;
-    
-    // 获取控制面板实际高度
-    const btnContainer = document.getElementById('btnContainer');
-    const controlsHeight = btnContainer && btnContainer.classList.contains('collapsed') ? 40 : 80;
-    
-    // 可用空间（考虑控制面板高度）
-    const availableWidth = screenWidth;
-    const availableHeight = screenHeight - controlsHeight;
-    
-    // 计算横竖屏的利用率 - 选择能显示更大拼图区域的方向
-    // 利用率 = min(可用宽度/拼图宽度, 可用高度/拼图高度)
-    // 当竖屏时，如果旋转后能获得更大的显示面积，则旋转
-    const landscapeArea = availableWidth * availableHeight;
-    const portraitArea = availableHeight * availableWidth;
-    
-    // 如果竖屏且横屏方向能获得更大显示面积（通常竖屏设备旋转后能更好显示横图）
-    // 或者竖屏时，如果可用宽度/高度比 > 0.9（接近正方形），则旋转以获得更好体验
-    const aspectRatio = availableWidth / availableHeight;
-    const shouldRotate = isPortrait && (
-        aspectRatio < 0.85 || // 当竖屏比例明显小于1时
-        (aspectRatio < 0.95 && landscapeArea > portraitArea * 1.1) // 或旋转后面积明显更大
-    );
-    
-    if (shouldRotate) {
-        mainContainer.classList.add('rotated');
-    } else {
-        mainContainer.classList.remove('rotated');
-    }
-    
-    // 确保布局调整
-    adjustLayoutForFullscreen();
-}
-
-// 暴露到全局，供init函数使用
-window.checkAndRotate = checkAndRotate;
-
-// 进入全屏
-function enterFullscreen() {
-    if (!mainContainer) return;
-    
-    isFullscreen = true;
-    window.isFullscreen = true;
-    mainContainer.classList.add('fullscreen-mode', 'auto-rotate');
-    document.body.classList.add('fullscreen-active');
-    
-    // 重置控制面板状态（默认展开）
-    isControlsCollapsed = false;
-    const btnContainer = document.getElementById('btnContainer');
-    if (btnContainer) {
-        btnContainer.classList.remove('collapsed');
-        const toggleBtn = document.getElementById('toggleControlsBtn');
-        if (toggleBtn) {
-            const toggleIcon = toggleBtn.querySelector('i');
-            if (toggleIcon) toggleIcon.className = 'fas fa-chevron-up';
-        }
-    }
-    
-    // 更新按钮图标和文本
-    fullscreenIcon.className = 'fas fa-compress';
-    fullscreenText.textContent = '退出';
-    
-    // 检查和调整旋转（延迟以确保DOM已更新）
-    setTimeout(() => {
-        adjustLayoutForFullscreen();
-        checkAndRotate();
-        // 如果拼图已初始化，延迟重新初始化一次以适应全屏尺寸（仅一次）
-        const imageContainer = document.getElementById('canvasContainer');
-        const items = imageContainer && imageContainer.querySelectorAll('.item');
-        if (items && items.length > 0) {
-            setTimeout(() => {
-                if (typeof init === 'function') {
-                    init();
-                }
-            }, 400);
-        }
-    }, 100);
-    
-    // 监听窗口大小变化，自动调整
-    window.addEventListener('resize', handleFullscreenResize);
-    
-    // 监听屏幕方向变化
-    window.addEventListener('orientationchange', function() {
-        setTimeout(() => {
-            adjustLayoutForFullscreen();
-            checkAndRotate();
-        }, 300);
-    });
-}
-
-// 退出全屏
-function exitFullscreen() {
-    if (!mainContainer) return;
-    
-    isFullscreen = false;
-    window.isFullscreen = false;
-    mainContainer.classList.remove('fullscreen-mode', 'auto-rotate', 'rotated');
-    document.body.classList.remove('fullscreen-active');
-    
-    // 恢复按钮图标和文本
-    fullscreenIcon.className = 'fas fa-expand';
-    fullscreenText.textContent = '全屏';
-    
-    // 移除窗口大小监听
-    window.removeEventListener('resize', handleFullscreenResize);
-}
-
-// 处理全屏时的窗口大小变化
-function handleFullscreenResize() {
-    if (isFullscreen) {
-        // 使用防抖，避免频繁调用
-        clearTimeout(handleFullscreenResize.timeoutId);
-        handleFullscreenResize.timeoutId = setTimeout(() => {
-            adjustLayoutForFullscreen();
-            checkAndRotate();
-        }, 150);
-    }
-}
-
-// 全屏按钮点击事件
-fullscreenBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (isFullscreen) {
-        exitFullscreen();
-    } else {
-        enterFullscreen();
-    }
-});
-
-// 折叠按钮点击事件（只在全屏模式下可用）
-const toggleControlsBtn = document.getElementById('toggleControlsBtn');
-if (toggleControlsBtn) {
-    // 默认隐藏折叠按钮（非全屏模式）
-    toggleControlsBtn.style.display = 'none';
-    
-    toggleControlsBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (isFullscreen) {
-            toggleControls();
-        }
-    });
-}
-
-// 监听浏览器全屏API变化（如果用户用ESC退出全屏）
-document.addEventListener('fullscreenchange', function() {
-    // 如果浏览器全屏退出，但我们的全屏模式还在，则退出我们的全屏模式
-    if (!document.fullscreenElement && isFullscreen) {
-        exitFullscreen();
-    }
-});
-
-document.addEventListener('webkitfullscreenchange', function() {
-    if (!document.webkitFullscreenElement && isFullscreen) {
-        exitFullscreen();
-    }
-});
-
-document.addEventListener('mozfullscreenchange', function() {
-    if (!document.mozFullScreenElement && isFullscreen) {
-        exitFullscreen();
-    }
-});
-
-document.addEventListener('MSFullscreenChange', function() {
-    if (!document.msFullscreenElement && isFullscreen) {
-        exitFullscreen();
-    }
-});
 const downloadBtnEl = document.getElementById('downloadImgBtn');
 if (downloadBtnEl) {
     downloadBtnEl.addEventListener('click', async function (e) {
@@ -534,34 +296,9 @@ function init(imageUrl) {
         let imageHeight = img.height;
         let scaledWidth, scale;
 
-        // 检查是否处于全屏模式
-        const isFullscreen = mainContainer.classList.contains('fullscreen-mode');
-        
-        if (isFullscreen) {
-            // 全屏模式下，根据窗口可用空间自适应计算尺寸
-            const btnContainer = document.getElementById('btnContainer');
-            const controlsHeight = btnContainer && btnContainer.classList.contains('collapsed') ? 40 : 80;
-            const isRotated = mainContainer.classList.contains('rotated');
-            
-            // 如果旋转了，宽高要互换（因为旋转后，窗口的宽变成高，高变成宽）
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-            const availableWidth = isRotated ? (screenHeight - controlsHeight - 40) : (screenWidth - 40);
-            const availableHeight = isRotated ? (screenWidth - 40) : (screenHeight - controlsHeight - 40);
-            
-            // 计算适合可用空间的缩放比例，保持图片宽高比
-            const scaleByWidth = availableWidth / imageWidth;
-            const scaleByHeight = availableHeight / imageHeight;
-            scale = Math.min(scaleByWidth, scaleByHeight);
-            
-            // 计算缩放后的尺寸
-            scaledWidth = Math.floor(imageWidth * scale);
-            fixedHeight = Math.floor(imageHeight * scale);
-        } else {
-            // 非全屏模式，使用固定高度
-            scale = fixedHeight / imageHeight;
-            scaledWidth = Math.floor(imageWidth * scale);
-        }
+        // 使用固定高度
+        scale = fixedHeight / imageHeight;
+        scaledWidth = Math.floor(imageWidth * scale);
 
         // 计算每个单元格的宽高（根据缩放后的尺寸）
         cellWidth = Math.floor(scaledWidth / xNumber);
@@ -643,13 +380,6 @@ function init(imageUrl) {
         function getTargetIndex(sourceIndex, maxIndex) {
             return sourceIndex === 0 ? 1 : sourceIndex === maxIndex ? maxIndex - 1 : sourceIndex + randomChange[getRandomInt(randomChange.length)];
         }
-        
-        // 如果处于全屏模式，初始化完成后重新检查旋转
-        setTimeout(() => {
-            if (window.isFullscreen && typeof window.checkAndRotate === 'function') {
-                window.checkAndRotate();
-            }
-        }, 300);
     }
 }
 
