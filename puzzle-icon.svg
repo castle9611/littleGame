@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="puzzleGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#56CCF2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2F80ED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="puzzleGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F093FB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F5576C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="puzzleGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4FACFE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00F2FE;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="puzzleGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43E97B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38F9D7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 左上拼图块 -->
+  <path d="M 12 12 L 32 12 L 32 18 Q 32 22 28 22 Q 24 22 24 18 Q 24 14 28 14 Q 30 14 30 16 L 30 32 L 18 32 Q 14 32 14 28 Q 14 24 18 24 Q 22 24 22 28 Q 22 30 20 30 L 12 30 Z" 
+        fill="url(#puzzleGradient1)" stroke="#fff" stroke-width="1"/>
+  
+  <!-- 右上拼图块 -->
+  <path d="M 32 12 L 52 12 L 52 30 L 44 30 Q 40 30 40 26 Q 40 22 44 22 Q 48 22 48 26 Q 48 28 46 28 L 46 32 L 32 32 L 32 18 Q 32 14 36 14 Q 40 14 40 18 Q 40 22 36 22 Q 34 22 34 20 L 34 16 Z" 
+        fill="url(#puzzleGradient2)" stroke="#fff" stroke-width="1"/>
+  
+  <!-- 左下拼图块 -->
+  <path d="M 12 32 L 30 32 L 30 34 Q 30 38 26 38 Q 22 38 22 34 Q 22 30 26 30 Q 28 30 28 32 L 28 52 L 12 52 Z" 
+        fill="url(#puzzleGradient3)" stroke="#fff" stroke-width="1"/>
+  
+  <!-- 右下拼图块 -->
+  <path d="M 32 32 L 46 32 L 46 34 Q 46 38 42 38 Q 38 38 38 34 Q 38 30 42 30 Q 44 30 44 32 L 44 52 L 28 52 L 28 46 Q 28 42 32 42 Q 36 42 36 46 Q 36 50 32 50 Q 30 50 30 48 L 30 32 Z" 
+        fill="url(#puzzleGradient4)" stroke="#fff" stroke-width="1"/>
+</svg>
